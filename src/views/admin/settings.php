@@ -51,6 +51,29 @@ $currentTz = site_tz()->getName();
 
 <form class="card" method="post" novalidate>
   <?= csrf_field() ?>
+  <input type="hidden" name="action" value="new_booth_link">
+  <fieldset>
+    <legend>Photobooth</legend>
+    <p class="hint" style="margin:0">Open this link on the booth tablet or PC, allow the camera, and tap the full-screen button. It always shows the contest that's live on the home page.</p>
+    <div class="copy"><code id="boothLink"><?= e($boothLink) ?></code><button class="btn small ghost" type="button" data-copy="boothLink">Copy</button><a class="btn small ghost" href="<?= e($boothLink) ?>" target="_blank" rel="noopener">Open</a></div>
+    <div class="row small">
+      <?php if (booth_ai_configured()): ?>
+        <span class="chip ok">AI connected</span><span class="muted">Model: <?= e(env('OPENAI_IMAGE_MODEL', 'gpt-image-1')) ?></span>
+      <?php else: ?>
+        <span class="chip">Demo mode</span><span class="muted">No AI key yet. Photos get a color filter instead. Add <code>OPENAI_API_KEY</code> to the server's <code>.env</code> file to turn on AI.</span>
+      <?php endif; ?>
+    </div>
+    <div class="row small muted">
+      AI photos today: <strong style="color:var(--fg)"><?= (int) $boothRunsToday ?></strong>
+      <?php if ($activeContest && (int) $activeContest['booth_daily_limit'] > 0): ?>of <?= (int) $activeContest['booth_daily_limit'] ?> allowed<?php endif; ?>
+      <?php if ($activeContest && !$activeContest['booth_enabled']): ?> · The photobooth is turned off for the live contest.<?php endif; ?>
+    </div>
+    <div><button class="btn ghost danger" type="submit">Make a new photobooth link</button></div>
+  </fieldset>
+</form>
+
+<form class="card" method="post" novalidate>
+  <?= csrf_field() ?>
   <input type="hidden" name="action" value="pin">
   <fieldset>
     <legend>Change admin PIN</legend>

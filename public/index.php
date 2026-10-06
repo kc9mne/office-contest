@@ -5,6 +5,7 @@ require dirname(__DIR__) . '/src/bootstrap.php';
 require APP_ROOT . '/src/pages/public.php';
 require APP_ROOT . '/src/pages/setup.php';
 require APP_ROOT . '/src/pages/admin.php';
+require APP_ROOT . '/src/pages/booth.php';
 
 csrf_check();
 $path = request_path();
@@ -23,6 +24,15 @@ if ($path === '/') {
         abort(404);
     }
     admin_route($m[2] ?? '/');
+} elseif (preg_match('#^/booth/([a-f0-9]+)(/.*)?$#', $path, $m)) {
+    if (!hash_equals(booth_token(), $m[1])) {
+        abort(404);
+    }
+    booth_route($m[2] ?? '/');
+} elseif (preg_match('#^/p/([A-Z0-9]{8})$#', $path, $m)) {
+    page_photo($m[1]);
+} elseif ($path === '/qr') {
+    page_qr();
 } else {
     abort(404);
 }

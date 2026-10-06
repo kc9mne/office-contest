@@ -3,8 +3,10 @@ $err = fn($k) => isset($errors[$k]) ? '<span class="error">' . e($errors[$k]) . 
 $cls = fn($k) => isset($errors[$k]) ? 'field has-error' : 'field';
 $modeDefaults = [];
 foreach (modes() as $key => $m) {
-    $modeDefaults[$key] = ['title' => $m['title'], 'categories' => implode("\n", $m['categories']), 'event_name' => $m['event_name'], 'booth' => $m['booth']];
+    $modeDefaults[$key] = ['title' => $m['title'], 'categories' => implode("\n", $m['categories']), 'event_name' => $m['event_name'], 'booth' => $m['booth'],
+        'styles' => array_map(fn($s) => ['name' => $s['name'], 'prompt' => $s['prompt']], $m['booth_styles'])];
 }
+$styleRows = array_pad(array_values($form['styles'] ?? []), BOOTH_MAX_STYLES, ['name' => '', 'prompt' => '']);
 ?>
 <div class="spread">
   <div>
@@ -93,7 +95,36 @@ foreach (modes() as $key => $m) {
       <legend>Options</legend>
       <label class="toggle"><span>Approve entries before they appear<small>Off: new entries show up right away</small></span><input class="switch" type="checkbox" name="require_approval" value="1" <?= !empty($form['require_approval']) ? 'checked' : '' ?>></label>
       <label class="toggle"><span>Show live vote counts<small>Off: counts stay hidden until voting closes</small></span><input class="switch" type="checkbox" name="show_counts" value="1" <?= !empty($form['show_counts']) ? 'checked' : '' ?>></label>
-      <label class="toggle"><span>Photobooth<small>AI photobooth page for a tablet or webcam (coming in a later step)</small></span><input class="switch" type="checkbox" name="booth_enabled" value="1" <?= !empty($form['booth_enabled']) ? 'checked' : '' ?>></label>
+    </fieldset>
+  </section>
+
+  <section class="card">
+    <fieldset>
+      <legend>Photobooth</legend>
+      <label class="toggle"><span>Photobooth for this contest<small>A full-screen camera page for a tablet or webcam PC. Get its link in Site settings.</small></span><input class="switch" type="checkbox" name="booth_enabled" value="1" <?= !empty($form['booth_enabled']) ? 'checked' : '' ?>></label>
+      <div class="<?= $cls('booth_daily_limit') ?>" style="max-width:240px">
+        <label for="booth_daily_limit">Daily AI photo limit</label>
+        <input id="booth_daily_limit" name="booth_daily_limit" type="number" min="0" max="99999" value="<?= e((string) ($form['booth_daily_limit'] ?? 200)) ?>">
+        <span class="hint">Caps your AI bill. 0 means no limit. Resets at midnight.</span>
+        <?= $err('booth_daily_limit') ?>
+      </div>
+      <div class="stack" style="gap:6px">
+        <span class="label">Looks</span>
+        <span class="hint">Up to <?= BOOTH_MAX_STYLES ?>. The instructions are sent to the AI along with the photo. Leave a row empty to skip it. Every request also tells the AI to keep the person recognizable and office-appropriate.</span>
+        <?= $err('booth_styles') ?>
+      </div>
+      <?php foreach ($styleRows as $i => $s): ?>
+        <div class="grid2" style="grid-template-columns: minmax(140px, 1fr) minmax(220px, 3fr)">
+          <div class="field">
+            <label for="style_name_<?= $i ?>">Look <?= $i + 1 ?> name</label>
+            <input id="style_name_<?= $i ?>" name="style_name[]" value="<?= e($s['name']) ?>" maxlength="60" data-style-name="<?= $i ?>">
+          </div>
+          <div class="field">
+            <label for="style_prompt_<?= $i ?>">Instructions for the AI</label>
+            <textarea id="style_prompt_<?= $i ?>" name="style_prompt[]" rows="2" style="min-height:64px" maxlength="1000" data-style-prompt="<?= $i ?>"><?= e($s['prompt']) ?></textarea>
+          </div>
+        </div>
+      <?php endforeach; ?>
     </fieldset>
   </section>
 

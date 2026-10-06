@@ -88,6 +88,36 @@ function contest_from_post(): array
         $errors['categories'] = 'Use 10 categories or fewer.';
     }
 
+    // Photobooth looks: parallel arrays style_name[] / style_prompt[]
+    $defaults = mode($mode)['booth_styles'];
+    $styles = [];
+    $names = (array) ($_POST['style_name'] ?? []);
+    $prompts = (array) ($_POST['style_prompt'] ?? []);
+    foreach ($names as $i => $name) {
+        $name = mb_substr(trim((string) $name), 0, 60);
+        $prompt = mb_substr(trim((string) ($prompts[$i] ?? '')), 0, 1000);
+        if ($name === '' && $prompt === '') {
+            continue;
+        }
+        if ($name === '' || $prompt === '') {
+            $errors['booth_styles'] = 'Each photobooth look needs a name and instructions.';
+            continue;
+        }
+        $d = $defaults[count($styles) % count($defaults)];
+        $styles[] = ['name' => $name, 'prompt' => $prompt, 'from' => $d['from'], 'to' => $d['to']];
+    }
+    if ($data['booth_enabled'] && !$styles && !isset($errors['booth_styles'])) {
+        $errors['booth_styles'] = 'Add at least one photobooth look, or turn the photobooth off.';
+    }
+    $data['booth_styles'] = $styles ? json_encode(array_slice($styles, 0, BOOTH_MAX_STYLES)) : null;
+    $data['booth_style_list'] = $styles;
+    $limit = trim((string) ($_POST['booth_daily_limit'] ?? '200'));
+    if (!preg_match('/^\d{1,5}$/', $limit)) {
+        $errors['booth_daily_limit'] = 'Enter a number (0 means no limit).';
+        $limit = '200';
+    }
+    $data['booth_daily_limit'] = (int) $limit;
+
     return [$data, $categories, $errors];
 }
 
@@ -97,7 +127,7 @@ function contest_save(?int $id, array $data, array $categories): int
     $pdo->beginTransaction();
     try {
         $fields = ['mode', 'title', 'subtitle', 'starts_at', 'ends_at', 'event_name', 'event_details',
-            'require_approval', 'show_counts', 'booth_enabled'];
+            'require_approval', 'show_counts', 'booth_enabled', 'booth_styles', 'booth_daily_limit'];
         $values = array_map(fn($f) => $data[$f], $fields);
         if ($id === null) {
             db_run(

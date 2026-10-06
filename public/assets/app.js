@@ -64,6 +64,18 @@
       if (cats.value.trim() === (from.categories || '').trim() || cats.value.trim() === '') cats.value = to.categories || '';
       if (eventName.value.trim() === (from.event_name || '') || eventName.value.trim() === '') eventName.value = to.event_name || '';
       booth.checked = !!to.booth;
+      // Swap photobooth looks if they still match the previous type's defaults.
+      const fromStyles = from.styles || [];
+      const toStyles = to.styles || [];
+      form.querySelectorAll('[data-style-name]').forEach(nameEl => {
+        const i = +nameEl.dataset.styleName;
+        const promptEl = form.querySelector(`[data-style-prompt="${i}"]`);
+        const was = fromStyles[i] || { name: '', prompt: '' };
+        if (nameEl.value.trim() === was.name && promptEl.value.trim() === was.prompt) {
+          nameEl.value = toStyles[i]?.name || '';
+          promptEl.value = toStyles[i]?.prompt || '';
+        }
+      });
       document.documentElement.dataset.mode = e.target.value;
       current = e.target.value;
     });

@@ -44,6 +44,8 @@ max_execution_time = 120
 max_input_time = 300
 memory_limit = 256M
 expose_php = Off
+; Newer Ubuntu blocks PCRE's JIT memory and PHP logs a warning on every request
+pcre.jit = 0
 INI
 
 echo "==> App code"

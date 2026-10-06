@@ -35,8 +35,7 @@ function admin_url(string $sub = ''): string
 
 function admin_full_link(): string
 {
-    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-    return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . admin_url();
+    return site_origin() . admin_url();
 }
 
 function admin_login_page(string $sub): void
@@ -96,11 +95,13 @@ function admin_contest_form(?int $id): void
         $form = $data + ['categories' => implode("\n", $categories)];
         $form['starts_at'] = $data['starts_local'];
         $form['ends_at'] = $data['ends_local'];
+        $form['styles'] = $data['booth_style_list'];
     } elseif ($contest) {
         $form = $contest;
         $form['starts_at'] = utc_to_local($contest['starts_at'], 'Y-m-d\TH:i');
         $form['ends_at'] = utc_to_local($contest['ends_at'], 'Y-m-d\TH:i');
         $form['categories'] = implode("\n", array_column(contest_categories($id), 'name'));
+        $form['styles'] = contest_booth_styles($contest);
     } else {
         $m = mode('halloween');
         $start = (new DateTimeImmutable('tomorrow 09:00', site_tz()));
@@ -116,6 +117,8 @@ function admin_contest_form(?int $id): void
             'require_approval' => 0,
             'show_counts' => 1,
             'booth_enabled' => $m['booth'] ? 1 : 0,
+            'booth_daily_limit' => 200,
+            'styles' => $m['booth_styles'],
         ];
     }
 
@@ -188,6 +191,10 @@ function admin_settings(): void
                 flash('PIN changed.');
                 redirect(admin_base() . '/settings');
             }
+        } elseif ($action === 'new_booth_link') {
+            set_setting('booth_token', bin2hex(random_bytes(8)));
+            flash('New photobooth link created. Open it on the booth device; the old link no longer works.');
+            redirect(admin_base() . '/settings');
         } elseif ($action === 'new_link') {
             if (!post_bool('confirm_new_link')) {
                 $errors['confirm_new_link'] = 'Tick the box to confirm. The old admin link stops working.';
@@ -204,5 +211,8 @@ function admin_settings(): void
         'title' => 'Site settings',
         'errors' => $errors,
         'adminLink' => admin_full_link(),
+        'boothLink' => site_origin() . url(booth_base()),
+        'boothRunsToday' => booth_runs_today(),
+        'activeContest' => active_contest(),
     ], 'layout_admin');
 }

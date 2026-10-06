@@ -16,6 +16,8 @@ require APP_ROOT . '/src/modes.php';
 require APP_ROOT . '/src/contests.php';
 require APP_ROOT . '/src/auth.php';
 require APP_ROOT . '/src/uploads.php';
+require APP_ROOT . '/src/booth.php';
+require APP_ROOT . '/src/qr.php';
 
 $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
 session_name('officevote');
@@ -30,7 +32,7 @@ session_start();
 
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
-header("Content-Security-Policy: default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+header("Content-Security-Policy: default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
 
 try {
     migrate();

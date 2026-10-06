@@ -42,6 +42,17 @@ function url(string $path = '/'): string
     return base_path() . '/' . ltrim($path, '/');
 }
 
+/** "https://host" for links people copy or scan. Uses APP_URL from .env when set. */
+function site_origin(): string
+{
+    $configured = env('APP_URL');
+    if ($configured && preg_match('#^(https?://[^/]+)#', $configured, $m)) {
+        return $m[1];
+    }
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    return $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+}
+
 function media_url(string $relative): string
 {
     return url('/media/' . ltrim($relative, '/'));
@@ -98,8 +109,11 @@ function csrf_check(): void
     if (!is_post()) {
         return;
     }
-    $sent = (string) ($_POST['_csrf'] ?? '');
+    $sent = (string) ($_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
     if ($sent === '' || !hash_equals(csrf_token(), $sent)) {
+        if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+            json_response(['error' => 'Session expired.', 'csrfExpired' => true], 400);
+        }
         abort(400, 'This form expired. Go back, reload the page and try again.');
     }
 }

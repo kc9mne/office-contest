@@ -31,6 +31,8 @@ if ($path === '/') {
     booth_route($m[2] ?? '/');
 } elseif (preg_match('#^/p/([A-Z0-9]{8})$#', $path, $m)) {
     page_photo($m[1]);
+} elseif (preg_match('#^/media/(.+)$#', $path, $m)) {
+    page_media($m[1]);
 } elseif ($path === '/gallery') {
     page_gallery();
 } elseif ($path === '/videos') {

@@ -32,7 +32,10 @@ function base_path(): string
 {
     static $base = null;
     if ($base === null) {
-        $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+        // Only trust SCRIPT_NAME when it points at our front controller; some servers
+        // (PHP's built-in one, for example) report the requested path there instead.
+        $script = str_replace('\\', '/', (string) ($_SERVER['SCRIPT_NAME'] ?? ''));
+        $base = basename($script) === 'index.php' ? rtrim(dirname($script), '/') : '';
     }
     return $base;
 }

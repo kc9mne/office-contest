@@ -7,7 +7,10 @@
 
 <div class="spread">
   <h1 class="page-title">Contests</h1>
-  <a class="btn primary" href="<?= e(admin_url('contests/new')) ?>">+ New contest</a>
+  <div class="row">
+    <a class="btn ghost" href="<?= e(admin_url('poster')) ?>">Print QR poster</a>
+    <a class="btn primary" href="<?= e(admin_url('contests/new')) ?>">+ New contest</a>
+  </div>
 </div>
 
 <?php if (!$contests): ?>

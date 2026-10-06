@@ -262,3 +262,61 @@ function page_videos(): void
         'form' => $form,
     ]);
 }
+
+/**
+ * /media/... served by PHP. On the Ubuntu setup Apache serves these directly (an Alias),
+ * so this only runs on hosts without that, such as shared hosting. Supports byte ranges
+ * so videos can seek.
+ */
+function page_media(string $relative): void
+{
+    if (str_contains($relative, '..') || !preg_match('#^[A-Za-z0-9/_.-]+$#', $relative)) {
+        abort(404);
+    }
+    $types = ['jpg' => 'image/jpeg', 'jpeg' => 'image/jpeg', 'png' => 'image/png', 'mp4' => 'video/mp4', 'm4v' => 'video/mp4', 'webm' => 'video/webm'];
+    $path = media_dir() . '/' . $relative;
+    $type = $types[strtolower(pathinfo($path, PATHINFO_EXTENSION))] ?? null;
+    if ($type === null || !is_file($path)) {
+        abort(404);
+    }
+    session_write_close();
+    header_remove('Pragma');
+    header_remove('Expires');
+    $size = filesize($path);
+    $start = 0;
+    $end = $size - 1;
+    header('Content-Type: ' . $type);
+    header('Accept-Ranges: bytes');
+    header('Cache-Control: public, max-age=604800');
+    if (preg_match('/^bytes=(\d*)-(\d*)$/', $_SERVER['HTTP_RANGE'] ?? '', $m) && ($m[1] !== '' || $m[2] !== '')) {
+        if ($m[1] === '') {
+            $start = max(0, $size - (int) $m[2]);
+        } else {
+            $start = (int) $m[1];
+            if ($m[2] !== '') {
+                $end = min($end, (int) $m[2]);
+            }
+        }
+        if ($start > $end || $start >= $size) {
+            http_response_code(416);
+            header("Content-Range: bytes */{$size}");
+            exit;
+        }
+        http_response_code(206);
+        header("Content-Range: bytes {$start}-{$end}/{$size}");
+    }
+    header('Content-Length: ' . ($end - $start + 1));
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD') {
+        exit;
+    }
+    $fp = fopen($path, 'rb');
+    fseek($fp, $start);
+    for ($left = $end - $start + 1; $left > 0 && !feof($fp);) {
+        $chunk = (string) fread($fp, min(65536, $left));
+        echo $chunk;
+        flush();
+        $left -= strlen($chunk);
+    }
+    fclose($fp);
+    exit;
+}

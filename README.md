@@ -1,61 +1,62 @@
 # Office Contest
 
-A small website for running office contests: costume contests, ugly sweater showdowns, chili cook-offs, cookie bake-offs and anything else people vote on. Coworkers scan a QR code, browse the entries on their phones and vote. No accounts or app installs needed.
+A self-hosted website for office contests: Halloween costume contests, ugly sweater showdowns, chili cook-offs, cookie bake-offs and anything else people vote on. Coworkers scan a QR code, enter with a photo, and vote from their phones. No accounts, no app to install.
 
-> **Status:** planning. A clickable mockup is in [`docs/mockup.html`](docs/mockup.html). Open it in a browser to try every screen.
+It also has an **AI photobooth**: a tablet or webcam PC that takes a photo and turns people into zombies, vampires, elves or snow globes.
 
-## Features (planned)
+**[Install guide →](docs/INSTALL.md)** · [Clickable design mockup](docs/mockup.html)
 
-### For everyone
-- **Home page**: countdown to the start or end of voting, the overall top 3, and the current leader in each category.
-- **Voting**: no logins. Voters type their name once, and each device gets one vote per category. Picks can be changed until voting closes.
-- **Join**: enter yourself with a photo (taken right on your phone), your name, department and entry name.
-- **Gallery**: contest entries, photobooth pictures and videos in one place.
-- **Videos**: upload a phone video (up to 300 MB, stored on our own server) or paste a YouTube link.
+## Features
 
-### Contest modes
-| Mode | Example | Starter categories | Photobooth |
-|---|---|---|---|
-| Halloween | Costume Contest | Scariest, Funniest, Most Creative | On: Zombie, Vampire, Haunted portrait |
-| Holiday party | Ugly Sweater Showdown | Ugliest, Most Festive, Best DIY | On: Elf, Snow globe, Ugly sweater |
-| General | Chili Cook-Off, cookie contest | Spiciest, Best Flavor, Most Original | Off by default |
+**For everyone (on their phone)**
+- **Home:** live countdown, overall top 3 and the leader in each category (ties share a place).
+- **Enter:** take a photo, add your name, department and costume name.
+- **Vote:** type your name once, pick one favorite per category, and change your mind until voting closes.
+- **Gallery:** contest entries, photobooth pictures, and videos (uploads up to 300 MB, or YouTube links).
 
-Each mode changes the colors, the wording (costume, sweater, dish), the starter categories and the event name. All modes run on the same pages and the same code.
+**Photobooth (tablet or webcam PC)**
+- Just me or group photo, countdown, retake, pick a look, before and after, QR code to save it to your phone.
+- Restyled by OpenAI's image API. The key stays on the server, encrypted. Demo mode works without a key.
+- Looks and AI instructions editable per contest; daily photo limit to cap costs.
 
-### AI photobooth
-A separate full-screen page for a tablet or an office PC with a webcam, set up in front of a plain wall:
+**Contest modes:** Halloween, Holiday party and General. Each sets the colors, wording, starter categories and photobooth looks.
 
-1. Tap **I'm ready**, then a 3-second countdown takes the photo.
-2. Preview it, then **Retake** or **Looks good**.
-3. Pick a look and optionally add your name.
-4. The server sends the photo to an AI image service and gets back a restyled version.
-5. See the before and after, add it to the gallery, and scan a QR code to save it to your phone.
+**Admin (secret link + PIN)**
+- Company logo, name and brand color; department list; time zone.
+- Contests: dates, categories, event details, entry approval (off by default), live vote counts on or off, who can add videos.
+- Entries: approve, hide or delete, with live results.
+- Voters: every voter's name, device and network, with **duplicate-vote flags** (same name on two devices, similar names, same phone in private mode, bursts from one network). Don't-count / count-again per voter.
+- Downloads: results, voter list and every vote as Excel-friendly CSV.
+- Printable QR poster; close voting early; reset votes.
 
-### Admin
-Admins open the admin page with a secret link plus a PIN. From there they can:
-- Set the company logo, company name and an optional brand color that replaces the mode colors.
-- Create contests and see past contests in an archive.
-- Set the mode, title, start and end times, and categories.
-- Turn options on or off: photo approval (off by default), live vote counts, the photobooth.
-- Edit the AI instructions for each photobooth look, and set a daily photo limit.
-- Review the voter list. Likely duplicates are flagged (the same name on two devices, a burst of new devices on one network, or only a first name) and a vote can be voided with one tap.
-- Close voting early, reset votes, remove entries, print the QR poster, and export results.
+## Rules
 
-## Rules decided so far
-- One vote per device per category. The voter's name is required.
+- One vote per device per category. Voters type their name so duplicates can be spotted.
 - The overall winner is the total of an entry's votes across all categories.
-- One entry can win several categories, and ties share a place.
-- Photo approval is available but off by default.
+- One entry can win several categories; ties share a place.
 
-## Security notes
-- **The AI API key stays on the server.** Add it in Admin → Site settings → Photobooth AI, where it's stored encrypted (the encryption key is `storage/app.key`, outside the web root), or put it in `.env`. Neither file is in git. Back up `storage/app.key` with your database, or you'll need to re-enter the key after a restore.
-- **Protect the photobooth page** with its own PIN or secret link, plus the daily photo limit, so strangers can't run up the AI bill.
-- **Photos are sent to an outside AI service.** Check this is OK under your company's policy. The booth screen shows a notice.
+## Requirements
 
-## Open questions
-- Can people vote for their own entry?
-- Who can post videos: anyone, or only admins?
-- Use a personal or a company AI account?
+PHP 8.2+ (with `pdo_mysql`, `gd`, `curl`, `mbstring`, `fileinfo`, `sodium`, `exif`), MySQL 5.7+ or MariaDB 10.4+, and HTTPS. `ffmpeg` is optional; it lets people upload any phone video. See the [install guide](docs/INSTALL.md) for an Ubuntu one-command setup and for shared hosting.
+
+## Privacy and security
+
+- **Photobooth photos go to OpenAI** to be restyled. Check that's OK under your company's policy; the booth screen says so.
+- **The AI key never reaches the browser.** It's saved encrypted (`storage/app.key` holds the encryption key) or set in `.env`. Neither is in git.
+- **Admin and the photobooth live on secret links** (Admin also needs a PIN, with lockout after 5 wrong tries). Every form is protected against cross-site requests.
+- **Uploads are re-encoded** (images) or converted (videos), and the uploads folder can never run code.
+
+## Project layout
+
+```
+public/          web root: index.php, assets, .htaccess
+src/             application code, views and database migrations
+bin/             command-line tools: video conversion, admin access recovery
+deploy/          Ubuntu setup script
+storage/         uploads and encryption key (created on the server, not in git)
+docs/            install guide and the original design mockup
+```
 
 ## License
+
 [GPL-3.0](LICENSE)

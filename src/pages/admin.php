@@ -23,6 +23,10 @@ function admin_route(string $sub): void
         admin_entries();
     } elseif ($sub === '/voters') {
         admin_voters();
+    } elseif ($sub === '/poster') {
+        $contest = active_contest();
+        $siteUrl = site_origin() . url('/');
+        require APP_ROOT . '/src/views/admin/poster.php';
     } elseif (preg_match('#^/contests/(\d+)/export/(results|voters|votes)\.csv$#', $sub, $m)) {
         admin_export((int) $m[1], $m[2]);
     } elseif (preg_match('#^/contests/(\d+)/(close|reset-votes)$#', $sub, $m) && is_post()) {

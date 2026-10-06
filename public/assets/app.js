@@ -38,6 +38,9 @@
     if (del && e.submitter?.value === 'delete' && !window.confirm(del)) e.preventDefault();
   });
 
+  // Print buttons (QR poster).
+  document.addEventListener('click', e => { if (e.target.closest('[data-print]')) window.print(); });
+
   // Logo preview before saving.
   document.addEventListener('change', e => {
     const input = e.target.closest('input[type="file"][data-preview]');

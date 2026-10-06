@@ -33,6 +33,14 @@ if ($path === '/') {
     page_photo($m[1]);
 } elseif ($path === '/gallery') {
     page_gallery();
+} elseif ($path === '/join') {
+    page_join();
+} elseif ($path === '/join/done') {
+    page_join_done();
+} elseif ($path === '/vote') {
+    page_vote();
+} elseif ($path === '/session') {
+    page_session();
 } elseif ($path === '/qr') {
     page_qr();
 } else {

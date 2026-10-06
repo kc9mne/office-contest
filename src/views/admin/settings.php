@@ -51,6 +51,20 @@ $currentTz = site_tz()->getName();
 
 <form class="card" method="post" novalidate>
   <?= csrf_field() ?>
+  <input type="hidden" name="action" value="departments">
+  <fieldset>
+    <legend>Departments</legend>
+    <div class="field">
+      <label for="departments">One per line</label>
+      <textarea id="departments" name="departments" rows="6" placeholder="Accounting&#10;IT&#10;Sales"><?= e((string) setting('departments', '')) ?></textarea>
+      <span class="hint">People pick from this list when they enter, and voters can filter by it. Leave it empty to let people type their own.</span>
+    </div>
+    <div><button class="btn ghost" type="submit">Save departments</button></div>
+  </fieldset>
+</form>
+
+<form class="card" method="post" novalidate>
+  <?= csrf_field() ?>
   <input type="hidden" name="action" value="new_booth_link">
   <fieldset>
     <legend>Photobooth</legend>

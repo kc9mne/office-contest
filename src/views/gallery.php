@@ -1,19 +1,21 @@
+<?php $total = count($photos) + count($entries); ?>
 <div class="spread">
   <div>
     <a class="small" href="<?= e(url('/')) ?>">← <?= e($contest['title'] ?? 'Home') ?></a>
     <h1 class="page-title">Gallery</h1>
   </div>
-  <?php if ($photos): ?><span class="chip"><?= count($photos) ?> photo<?= count($photos) === 1 ? '' : 's' ?></span><?php endif; ?>
+  <?php if ($total): ?><span class="chip"><?= $total ?> photo<?= $total === 1 ? '' : 's' ?></span><?php endif; ?>
 </div>
 
 <?php if (!$contest): ?>
   <section class="card empty"><p><strong>No contest running right now.</strong></p></section>
-<?php elseif (!$photos): ?>
+<?php elseif (!$total): ?>
   <section class="card empty">
     <p><strong>No photos yet.</strong></p>
-    <p><?= $contest['booth_enabled'] ? 'Visit the photobooth, pick a look and tap "Add to gallery". Your picture shows up here.' : 'Photos will appear here once the contest gets going.' ?></p>
+    <p>Enter the contest<?= $contest['booth_enabled'] ? ' or visit the photobooth' : '' ?> and your picture shows up here.</p>
   </section>
 <?php else: ?>
+  <?php if ($photos): ?>
   <section>
     <h2 class="eyebrow" style="margin-bottom:10px">Photobooth</h2>
     <div class="gallery">
@@ -25,4 +27,18 @@
       <?php endforeach; ?>
     </div>
   </section>
+  <?php endif; ?>
+  <?php if ($entries): ?>
+  <section>
+    <h2 class="eyebrow" style="margin-bottom:10px">Contest entries</h2>
+    <div class="gallery">
+      <?php foreach ($entries as $en): ?>
+        <a class="gitem" href="<?= e(url('/vote#entry-' . $en['id'])) ?>">
+          <img src="<?= e(media_url($en['photo_path'])) ?>" alt="<?= e($en['name']) ?>" loading="lazy">
+          <span class="gcap"><?= e($en['name']) ?><?php if ($en['title'] !== '' || $en['department'] !== ''): ?><small><?= e($en['title'] !== '' ? $en['title'] : $en['department']) ?></small><?php endif; ?></span>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </section>
+  <?php endif; ?>
 <?php endif; ?>

@@ -19,6 +19,8 @@ function admin_route(string $sub): void
         admin_settings();
     } elseif ($sub === '/gallery') {
         admin_gallery();
+    } elseif ($sub === '/entries') {
+        admin_entries();
     } elseif ($sub === '/contests/new') {
         admin_contest_form(null);
     } elseif (preg_match('#^/contests/(\d+)$#', $sub, $m)) {
@@ -129,6 +131,32 @@ function admin_contest_form(?int $id): void
         'contest' => $contest,
         'form' => $form,
         'errors' => $errors,
+    ], 'layout_admin');
+}
+
+function admin_entries(): void
+{
+    $contest = active_contest();
+    if (is_post() && $contest) {
+        $entry = entry_find((int) ($_POST['entry_id'] ?? 0));
+        if (!$entry || (int) $entry['contest_id'] !== (int) $contest['id']) {
+            abort(404);
+        }
+        $action = (string) ($_POST['action'] ?? '');
+        if ($action === 'approve' || $action === 'reject') {
+            db_run('UPDATE entries SET status = ? WHERE id = ?', [$action === 'approve' ? 'approved' : 'rejected', $entry['id']]);
+            flash($action === 'approve' ? "{$entry['name']} is now on the voting page." : "{$entry['name']} is hidden from the voting page and gallery.");
+        } elseif ($action === 'delete') {
+            entry_delete($entry);
+            flash("{$entry['name']}'s entry and its votes were deleted.");
+        }
+        redirect(admin_base() . '/entries');
+    }
+    view('admin/entries', [
+        'title' => 'Entries',
+        'contest' => $contest,
+        'entries' => $contest ? contest_entries((int) $contest['id'], null) : [],
+        'standings' => $contest ? contest_standings($contest) : null,
     ], 'layout_admin');
 }
 
@@ -263,6 +291,14 @@ function admin_settings(): void
                 flash('AI options saved.');
                 redirect(admin_base() . '/settings#ai');
             }
+        } elseif ($action === 'departments') {
+            $lines = array_slice(array_values(array_unique(array_filter(array_map(
+                fn($l) => mb_substr(trim($l), 0, 80),
+                preg_split('/\R/', (string) ($_POST['departments'] ?? '')) ?: []
+            ), fn($l) => $l !== ''))), 0, 100);
+            set_setting('departments', implode("\n", $lines));
+            flash($lines ? 'Department list saved.' : 'Department list cleared. People will type their department.');
+            redirect(admin_base() . '/settings');
         } elseif ($action === 'new_booth_link') {
             set_setting('booth_token', bin2hex(random_bytes(8)));
             flash('New photobooth link created. Open it on the booth device; the old link no longer works.');

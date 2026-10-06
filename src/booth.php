@@ -7,8 +7,10 @@ const BOOTH_MAX_STYLES = 8;
 
 /** Every AI request is wrapped in these rules, whatever the admin typed for the look. */
 const BOOTH_RULES_SINGLE = 'Keep the person\'s face, expression, skin tone and pose clearly recognizable as the same person. '
+    . 'Keep their glasses, facial hair, hairstyle and visible accessories such as earrings and earbuds; do not remove or replace them. '
     . 'Family-friendly and office-appropriate: no gore, nudity, weapons or text. Portrait orientation, the person centered.';
 const BOOTH_RULES_GROUP = 'Keep every person\'s face, expression, skin tone and pose clearly recognizable. '
+    . 'Keep everyone\'s glasses, facial hair, hairstyles and visible accessories; do not remove or replace them. '
     . 'Keep exactly the same number of people in the same positions; do not add, remove or merge anyone. '
     . 'Family-friendly and office-appropriate: no gore, nudity, weapons or text. Landscape orientation.';
 

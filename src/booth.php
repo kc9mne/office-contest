@@ -5,9 +5,24 @@ const BOOTH_MAX_UPLOAD = 12 * 1024 * 1024;
 const BOOTH_MAX_EDGE = 1536;
 const BOOTH_MAX_STYLES = 4;
 
-/** Every AI request gets this appended, whatever the admin typed for the look. */
-const BOOTH_PROMPT_RULES = 'Keep the person\'s face, expression, skin tone and pose clearly recognizable as the same person. '
+/** Every AI request is wrapped in these rules, whatever the admin typed for the look. */
+const BOOTH_RULES_SINGLE = 'Keep the person\'s face, expression, skin tone and pose clearly recognizable as the same person. '
     . 'Family-friendly and office-appropriate: no gore, nudity, weapons or text. Portrait orientation, the person centered.';
+const BOOTH_RULES_GROUP = 'Keep every person\'s face, expression, skin tone and pose clearly recognizable. '
+    . 'Keep exactly the same number of people in the same positions; do not add, remove or merge anyone. '
+    . 'Family-friendly and office-appropriate: no gore, nudity, weapons or text. Landscape orientation.';
+
+const BOOTH_KINDS = ['single', 'group'];
+
+/** The full instructions sent to the AI for a look. */
+function booth_prompt(array $style, string $kind): string
+{
+    if ($kind === 'group') {
+        return 'This photo shows a group of people. Apply the following to every person in the photo, '
+            . 'and make the scene work for the whole group: ' . $style['prompt'] . ' ' . BOOTH_RULES_GROUP;
+    }
+    return $style['prompt'] . ' ' . BOOTH_RULES_SINGLE;
+}
 
 /** Secret part of the photobooth link, created the first time it's needed. */
 function booth_token(): string
@@ -102,8 +117,9 @@ function new_photo_code(): string
  * Save the photo the booth took. Re-encoded as JPEG, longest edge capped.
  * Returns [photo row, null] or [null, error].
  */
-function booth_save_original(array $contest, array $file, string $name): array
+function booth_save_original(array $contest, array $file, string $name, string $kind = 'single'): array
 {
+    $kind = in_array($kind, BOOTH_KINDS, true) ? $kind : 'single';
     if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
         return [null, upload_error_message((int) ($file['error'] ?? UPLOAD_ERR_NO_FILE))];
     }
@@ -131,8 +147,8 @@ function booth_save_original(array $contest, array $file, string $name): array
     }
 
     db_run(
-        'INSERT INTO booth_photos (code, contest_id, name, original_path, status, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [$code, $contest['id'], $name, $relative, 'pending', utc_now()]
+        'INSERT INTO booth_photos (code, contest_id, kind, name, original_path, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [$code, $contest['id'], $kind, $name, $relative, 'pending', utc_now()]
     );
     return [booth_photo_find((int) db()->lastInsertId()), null];
 }
@@ -167,8 +183,9 @@ function booth_process(array $photo, array $contest, array $style): array
 
     $source = media_dir() . '/' . $photo['original_path'];
     try {
+        $kind = $photo['kind'] ?? 'single';
         $jpeg = booth_ai_configured()
-            ? openai_restyle($source, $style['prompt'] . ' ' . BOOTH_PROMPT_RULES)
+            ? openai_restyle($source, booth_prompt($style, $kind), $kind === 'group' ? '1536x1024' : '1024x1536')
             : demo_restyle($source, $style);
         $relative = dirname($photo['original_path']) . '/' . $photo['code'] . '-' . bin2hex(random_bytes(3)) . '.jpg';
         if (file_put_contents(media_dir() . '/' . $relative, $jpeg) === false) {
@@ -190,12 +207,12 @@ function booth_process(array $photo, array $contest, array $style): array
 }
 
 /** Send the photo to OpenAI's image edit API. Returns JPEG bytes. */
-function openai_restyle(string $sourcePath, string $prompt): string
+function openai_restyle(string $sourcePath, string $prompt, string $size): string
 {
     $fields = [
         'model' => env('OPENAI_IMAGE_MODEL', 'gpt-image-1'),
         'prompt' => $prompt,
-        'size' => '1024x1536',
+        'size' => $size,
         'quality' => env('OPENAI_IMAGE_QUALITY', 'medium'),
         'n' => '1',
     ];
@@ -304,6 +321,7 @@ function booth_photo_json(array $photo): array
     return [
         'id' => (int) $photo['id'],
         'code' => $photo['code'],
+        'kind' => $photo['kind'] ?? 'single',
         'status' => $photo['status'],
         'style' => $photo['style'],
         'error' => $photo['error'],

@@ -15,7 +15,7 @@
   const IDLE_RESET_MS = 90_000;
   const DONE_RESET_S = 45;
 
-  const st = { stage: 'attract', blob: null, blobUrl: null, photo: null, style: null, name: '', error: '' };
+  const st = { stage: 'attract', kind: 'single', blob: null, blobUrl: null, photo: null, style: null, name: '', error: '' };
   let stream = null, timer = null, idleTimer = null, busy = false;
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -67,13 +67,16 @@
   $('camBtn').addEventListener('click', () => $('camDialog').showModal());
   $('camSelect').addEventListener('change', e => { store.set('booth.camera', e.target.value); startCamera(); });
 
-  /** Grab the centre 2:3 portrait area of the video (same area the screen shows). */
+  const isGroup = () => st.kind === 'group';
+
+  /** Grab the centre of the video in the frame's shape: 2:3 portrait, or 3:2 for groups. Same area the screen shows. */
   function capture() {
     const vw = video.videoWidth, vh = video.videoHeight;
     if (!vw || !vh) return Promise.resolve(null);
+    const ratio = isGroup() ? 3 / 2 : 2 / 3;
     let cw = vw, ch = vh;
-    if (vw / vh > 2 / 3) cw = Math.round(vh * 2 / 3); else ch = Math.round(vw * 3 / 2);
-    const scale = Math.min(1, 1536 / ch);
+    if (vw / vh > ratio) cw = Math.round(vh * ratio); else ch = Math.round(vw / ratio);
+    const scale = Math.min(1, 1536 / Math.max(cw, ch));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(cw * scale);
     canvas.height = Math.round(ch * scale);
@@ -120,12 +123,12 @@
   function reset() {
     clearInterval(timer);
     if (st.blobUrl) URL.revokeObjectURL(st.blobUrl);
-    Object.assign(st, { blob: null, blobUrl: null, photo: null, style: null, name: '', error: '' });
+    Object.assign(st, { kind: 'single', blob: null, blobUrl: null, photo: null, style: null, name: '', error: '' });
     go('attract');
   }
 
   function countdown() {
-    let n = 3;
+    let n = isGroup() ? 5 : 3;
     go('countdown');
     const count = $('count');
     const show = () => { count.textContent = n; count.classList.remove('tick'); void count.offsetWidth; count.classList.add('tick'); };
@@ -155,7 +158,7 @@
     try {
       await freshToken();
       if (!st.photo) {
-        const up = await post('/photos', { photo: new File([st.blob], 'photo.jpg', { type: 'image/jpeg' }), name: st.name });
+        const up = await post('/photos', { photo: new File([st.blob], 'photo.jpg', { type: 'image/jpeg' }), name: st.name, kind: st.kind });
         if (!up.ok) throw new Error(up.json.error || 'The photo could not be uploaded.');
         st.photo = up.json;
       }
@@ -216,6 +219,8 @@
     const showSplit = s === 'result' || s === 'done';
     $('cam').hidden = showSplit;
     $('split').hidden = !showSplit;
+    $('cam').classList.toggle('group', isGroup());
+    $('split').classList.toggle('group', isGroup());
     still.hidden = !['preview', 'style', 'working', 'failed'].includes(s);
     if (!still.hidden) still.src = st.blobUrl;
     $('camChip').textContent = still.hidden ? 'Live camera' : 'Your photo';
@@ -237,23 +242,26 @@
   const views = {
     attract: () => `
       <h2>Strike a pose!</h2>
-      <p>Stand on the mark and face the camera. You get a 3-second countdown.</p>
+      <p>Stand on the mark and face the camera. Tap when you're ready for the countdown.</p>
       ${st.error ? `<div class="kerr">${esc(st.error)}</div>` : ''}
-      <button type="button" class="kbtn primary huge" data-act="ready" data-autofocus>I'm ready</button>
+      <div class="kacts">
+        <button type="button" class="kbtn primary huge" data-act="single" data-autofocus>Just me</button>
+        <button type="button" class="kbtn primary huge" data-act="group">Group photo</button>
+      </div>
       ${fine}`,
-    countdown: () => `<h2>Get ready…</h2><p>Look at the camera and hold still.</p>`,
+    countdown: () => isGroup() ? `<h2>Squeeze in!</h2><p>Make sure everyone's face is in the frame.</p>` : `<h2>Get ready…</h2><p>Look at the camera and hold still.</p>`,
     preview: () => `
       <h2>How's that?</h2><p>Keep it or take another.</p>
       <div class="kacts"><button type="button" class="kbtn ghost" data-act="retake">Retake</button><button type="button" class="kbtn primary" data-act="keep" data-autofocus>Looks good</button></div>`,
     style: () => `
       <h2>Pick your look</h2>
       <div class="kstyles">${cfg.styles.map((x, i) => `<button type="button" class="kstyle" data-style="${i}" aria-pressed="${st.style === i}"><span class="sw" style="background:linear-gradient(160deg,${esc(x.from)},${esc(x.to)})"></span>${esc(x.name)}</button>`).join('')}</div>
-      <div class="field"><label for="kName">Your name <span class="hint">(optional, shown in the gallery)</span></label><input id="kName" maxlength="80" value="${esc(st.name)}" autocomplete="off"></div>
+      <div class="field"><label for="kName">${isGroup() ? 'Names' : 'Your name'} <span class="hint">(optional, shown in the gallery)</span></label><input id="kName" maxlength="80" value="${esc(st.name)}" autocomplete="off"></div>
       <button type="button" class="kbtn primary" data-act="make" ${st.style == null ? 'disabled' : ''}>${esc(cfg.verb)}</button>
       <button type="button" class="kbtn link" data-act="retake">Retake photo</button>`,
     working: () => `
       <h2>Working on it…</h2>
-      <p>Turning you into: <b>${esc(cfg.styles[st.style]?.name)}</b>. This usually takes 15–60 seconds.</p>
+      <p>Turning ${isGroup() ? 'your group' : 'you'} into: <b>${esc(cfg.styles[st.style]?.name)}</b>. This usually takes 15–60 seconds.</p>
       <div class="spin" role="status" aria-label="Working"></div>`,
     failed: () => `
       <h2>That didn't work</h2>
@@ -263,7 +271,7 @@
         <button type="button" class="kbtn ghost" data-act="reset">Start over</button>
       </div>`,
     result: () => `
-      <h2>Ta-da!</h2><p>Here's you as <b>${esc(st.photo.style)}</b>.</p>
+      <h2>Ta-da!</h2><p>Here's ${isGroup() ? 'your group' : 'you'} as <b>${esc(st.photo.style)}</b>.</p>
       <div class="kacts col">
         <button type="button" class="kbtn primary" data-act="gallery" data-autofocus>Add to gallery</button>
         <button type="button" class="kbtn ghost" data-act="restyle">Try another look</button>
@@ -287,7 +295,8 @@
     }
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (!act) return;
-    if (act === 'ready' || act === 'retake') countdown();
+    if (act === 'single' || act === 'group') { st.kind = act; render(); countdown(); }
+    else if (act === 'retake') countdown();
     else if (act === 'keep' || act === 'restyle') go('style');
     else if (act === 'make') makeIt();
     else if (act === 'gallery') addToGallery();
@@ -295,9 +304,12 @@
   });
   side.addEventListener('input', e => { if (e.target.id === 'kName') st.name = e.target.value; });
 
-  // Keyboard or presenter clicker: Space / Enter starts from the attract screen.
+  // Keyboard or presenter clicker.
   document.addEventListener('keydown', e => {
-    if (st.stage === 'attract' && (e.key === ' ' || e.key === 'Enter') && !$('camDialog').open) { e.preventDefault(); countdown(); }
+    // Space / Enter = just me, G = group photo.
+    if (st.stage !== 'attract' || $('camDialog').open) return;
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); st.kind = 'single'; render(); countdown(); }
+    else if (e.key === 'g' || e.key === 'G') { e.preventDefault(); st.kind = 'group'; render(); countdown(); }
   });
   // Any touch keeps the session from resetting mid-use.
   document.addEventListener('pointerdown', touchIdle, true);

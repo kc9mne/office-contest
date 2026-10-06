@@ -110,7 +110,7 @@ $styleRows = array_pad(array_values($form['styles'] ?? []), BOOTH_MAX_STYLES, ['
       </div>
       <div class="stack" style="gap:6px">
         <span class="label">Looks</span>
-        <span class="hint">Up to <?= BOOTH_MAX_STYLES ?>. The instructions are sent to the AI along with the photo. Leave a row empty to skip it. Every request also tells the AI to keep the person recognizable and office-appropriate.</span>
+        <span class="hint">Up to <?= BOOTH_MAX_STYLES ?>. The instructions are sent to the AI along with the photo. Leave a row empty to skip it. Write them for one person; for group photos the booth tells the AI to apply the look to everyone. Every request also tells the AI to keep people recognizable and office-appropriate.</span>
         <?= $err('booth_styles') ?>
       </div>
       <?php foreach ($styleRows as $i => $s): ?>

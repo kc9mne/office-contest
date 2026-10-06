@@ -60,7 +60,7 @@ function booth_upload(array $contest): void
     if (booth_limit_reached($contest)) {
         json_response(['error' => "The photobooth has reached today's photo limit. It resets at midnight."], 429);
     }
-    [$photo, $error] = booth_save_original($contest, $_FILES['photo'] ?? [], post_str('name', 80));
+    [$photo, $error] = booth_save_original($contest, $_FILES['photo'] ?? [], post_str('name', 80), post_str('kind', 10));
     if ($error) {
         json_response(['error' => $error], 422);
     }

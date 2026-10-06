@@ -24,9 +24,13 @@ body.booth-body .brand-name small { color: var(--stage-muted); }
   .kbody { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1.3fr) auto; }
   body.booth-body { overflow: auto; }
 }
-.camwrap { min-height: 0; display: grid; place-items: center; }
-.cam { position: relative; height: 100%; max-height: 100%; aspect-ratio: 2 / 3; max-width: 100%; border-radius: 18px; overflow: hidden; background: radial-gradient(ellipse at 50% 30%, #A2A6AD, var(--wall)); }
+/* Size the frame to the largest 2:3 (or 3:2 for groups) box that fits the space. */
+.camwrap { min-height: 0; display: grid; place-items: center; container-type: size; }
+.cam { position: relative; height: min(100cqh, 150cqw); aspect-ratio: 2 / 3; border-radius: 18px; overflow: hidden; background: radial-gradient(ellipse at 50% 30%, #A2A6AD, var(--wall)); }
 .cam video, .cam #still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.cam.group { height: auto; width: min(100cqw, 150cqh); aspect-ratio: 3 / 2; }
+.split.group { grid-template-columns: 1fr; grid-template-rows: repeat(2, minmax(0, 1fr)); }
+.split.group figure { aspect-ratio: 3 / 2; width: auto; height: 100%; max-width: 100%; }
 .kchip { position: absolute; top: 12px; left: 12px; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: rgb(0 0 0 / .55); color: #fff; }
 .kchip.rec::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #FF4A4A; margin-right: 6px; vertical-align: 1px; }
 .count { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-display); font-size: clamp(120px, 22vh, 240px); color: #fff; text-shadow: 0 4px 40px rgb(0 0 0 / .6); }

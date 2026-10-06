@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 const BOOTH_MAX_UPLOAD = 12 * 1024 * 1024;
 const BOOTH_MAX_EDGE = 1536;
-const BOOTH_MAX_STYLES = 4;
+const BOOTH_MAX_STYLES = 8;
 
 /** Every AI request is wrapped in these rules, whatever the admin typed for the look. */
 const BOOTH_RULES_SINGLE = 'Keep the person\'s face, expression, skin tone and pose clearly recognizable as the same person. '
@@ -292,7 +292,18 @@ function openai_restyle(string $sourcePath, string $prompt, string $size): strin
     $json = json_decode($body, true);
     if ($status !== 200) {
         $message = $json['error']['message'] ?? "HTTP {$status}";
-        if (($json['error']['code'] ?? '') === 'moderation_blocked' || str_contains((string) $message, 'safety')) {
+        error_log('OpenAI image error: ' . $message);
+        $code = (string) ($json['error']['code'] ?? '');
+        if (in_array($code, ['insufficient_quota', 'billing_hard_limit_reached'], true) || stripos((string) $message, 'credits') !== false) {
+            throw new RuntimeException("The photobooth's AI account is out of credits. Ask an organizer to top it up.");
+        }
+        if ($status === 401) {
+            throw new RuntimeException("The photobooth's AI key isn't working. Ask an organizer to check it in Admin.");
+        }
+        if ($status === 429) {
+            throw new RuntimeException('The AI service is busy right now. Wait a few seconds and tap Try again.');
+        }
+        if ($code === 'moderation_blocked' || str_contains((string) $message, 'safety')) {
             throw new RuntimeException('The AI service declined this photo. Try another look or retake the photo.');
         }
         throw new RuntimeException('The AI service returned an error: ' . $message);
@@ -390,4 +401,31 @@ function booth_photo_json(array $photo): array
         'result' => $photo['result_path'] ? media_url($photo['result_path']) : null,
         'inGallery' => (bool) $photo['in_gallery'],
     ];
+}
+
+/** Finished booth photos people chose to share, newest first. */
+function booth_gallery_photos(int $contestId, int $limit = 300): array
+{
+    return db_all(
+        "SELECT * FROM booth_photos WHERE contest_id = ? AND status = 'done' AND in_gallery = 1
+         ORDER BY finished_at DESC, id DESC LIMIT " . max(1, $limit),
+        [$contestId]
+    );
+}
+
+/** Every finished booth photo for a contest, for Admin. */
+function booth_admin_photos(int $contestId, int $limit = 500): array
+{
+    return db_all(
+        "SELECT * FROM booth_photos WHERE contest_id = ? AND status = 'done'
+         ORDER BY created_at DESC, id DESC LIMIT " . max(1, $limit),
+        [$contestId]
+    );
+}
+
+function booth_photo_delete(array $photo): void
+{
+    delete_media($photo['original_path']);
+    delete_media($photo['result_path']);
+    db_run('DELETE FROM booth_photos WHERE id = ?', [$photo['id']]);
 }

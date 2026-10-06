@@ -17,6 +17,8 @@ function admin_route(string $sub): void
         redirect('/');
     } elseif ($sub === '/settings') {
         admin_settings();
+    } elseif ($sub === '/gallery') {
+        admin_gallery();
     } elseif ($sub === '/contests/new') {
         admin_contest_form(null);
     } elseif (preg_match('#^/contests/(\d+)$#', $sub, $m)) {
@@ -127,6 +129,31 @@ function admin_contest_form(?int $id): void
         'contest' => $contest,
         'form' => $form,
         'errors' => $errors,
+    ], 'layout_admin');
+}
+
+function admin_gallery(): void
+{
+    $contest = active_contest();
+    if (is_post() && $contest) {
+        $photo = booth_photo_find((int) ($_POST['photo_id'] ?? 0));
+        if (!$photo || (int) $photo['contest_id'] !== (int) $contest['id']) {
+            abort(404);
+        }
+        $action = (string) ($_POST['action'] ?? '');
+        if ($action === 'hide' || $action === 'show') {
+            db_run('UPDATE booth_photos SET in_gallery = ? WHERE id = ?', [$action === 'show' ? 1 : 0, $photo['id']]);
+            flash($action === 'show' ? 'Photo is back in the gallery.' : 'Photo removed from the gallery. Its share link still works for the person who took it.');
+        } elseif ($action === 'delete') {
+            booth_photo_delete($photo);
+            flash('Photo deleted for good, including its share link.');
+        }
+        redirect(admin_base() . '/gallery');
+    }
+    view('admin/gallery', [
+        'title' => 'Gallery',
+        'contest' => $contest,
+        'photos' => $contest ? booth_admin_photos((int) $contest['id']) : [],
     ], 'layout_admin');
 }
 

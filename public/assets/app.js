@@ -29,6 +29,12 @@
     }
   });
 
+  // Forms that need a "are you sure?" first: <form data-confirm="Question">
+  document.addEventListener('submit', e => {
+    const msg = e.target.dataset?.confirm;
+    if (msg && !window.confirm(msg)) e.preventDefault();
+  });
+
   // Logo preview before saving.
   document.addEventListener('change', e => {
     const input = e.target.closest('input[type="file"][data-preview]');

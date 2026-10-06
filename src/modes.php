@@ -23,6 +23,12 @@ function modes(): array
                  'prompt' => 'Make this person a classic vampire with a high-collared black cape, pale skin and a moonlit castle behind them.'],
                 ['name' => 'Haunted portrait', 'from' => '#231C2C', 'to' => '#6B5A3A',
                  'prompt' => 'Paint this person as an old haunted oil portrait in an ornate gold frame, lit by candlelight, with a faint ghostly glow.'],
+                ['name' => 'Pirate', 'from' => '#1B2A3A', 'to' => '#B8862B',
+                 'prompt' => 'Make this person a swashbuckling pirate captain with a tricorn hat, long coat and gold trim, on the deck of a ship under a stormy sky.'],
+                ['name' => 'Witch', 'from' => '#2B1840', 'to' => '#5E8C3A',
+                 'prompt' => 'Make this person a classic witch with a tall pointed hat, a dark cloak and a bubbling cauldron, in a candle-lit cottage full of potion bottles.'],
+                ['name' => 'Werewolf', 'from' => '#2A2622', 'to' => '#7A6A58',
+                 'prompt' => 'Turn this person into a friendly cartoon werewolf with furry ears and fuzzy cheeks, howling-moon night sky behind them. Spooky but fun, not scary.'],
             ],
         ],
         'holiday' => [

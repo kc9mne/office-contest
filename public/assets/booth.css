@@ -63,6 +63,8 @@ body.booth-body .brand-name small { color: var(--stage-muted); }
 .kacts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .kacts.col { grid-template-columns: 1fr; }
 .kstyles { display: grid; gap: 10px; }
+.kstyles.many { grid-template-columns: 1fr 1fr; }
+.kstyles.many .kstyle { font-size: 16px; padding: 10px 12px; }
 .kstyle { display: flex; align-items: center; gap: 12px; background: var(--stage-2); border: 2px solid transparent; color: var(--stage-fg); border-radius: 14px; padding: 12px 14px; font-weight: 700; font-size: 18px; cursor: pointer; text-align: left; font-family: inherit; }
 .kstyle[aria-pressed="true"] { border-color: var(--accent); }
 .kstyle .sw { width: 34px; height: 34px; border-radius: 9px; flex: none; }

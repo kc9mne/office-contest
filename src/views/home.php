@@ -18,6 +18,9 @@
       <div class="card"><span class="eyebrow"><?= e($contest['event_name']) ?></span><b><?= e($contest['event_details'] !== '' ? $contest['event_details'] : 'Details coming soon') ?></b></div>
     <?php endif; ?>
   </section>
+  <nav class="home-links" aria-label="Contest pages">
+    <a class="card home-link" href="<?= e(url('/gallery')) ?>">Gallery <span class="muted"><?= $galleryCount ? $galleryCount . ' photo' . ($galleryCount === 1 ? '' : 's') . ' →' : 'Coming soon →' ?></span></a>
+  </nav>
   <section class="card">
     <span class="eyebrow">Categories</span>
     <div class="pills" style="margin-top:8px">

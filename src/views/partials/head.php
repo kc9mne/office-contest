@@ -5,5 +5,5 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
-<link rel="stylesheet" href="<?= e(url('/assets/app.css')) ?>?v=2">
-<script src="<?= e(url('/assets/app.js')) ?>?v=2" defer></script>
+<link rel="stylesheet" href="<?= e(url('/assets/app.css')) ?>?v=3">
+<script src="<?= e(url('/assets/app.js')) ?>?v=3" defer></script>

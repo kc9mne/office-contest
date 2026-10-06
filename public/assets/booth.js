@@ -256,7 +256,7 @@
       <button type="button" class="kbtn link" data-act="reset">← Go back to switch between Just me and Group photo</button>`,
     style: () => `
       <h2>Pick your look</h2>
-      <div class="kstyles">${cfg.styles.map((x, i) => `<button type="button" class="kstyle" data-style="${i}" aria-pressed="${st.style === i}"><span class="sw" style="background:linear-gradient(160deg,${esc(x.from)},${esc(x.to)})"></span>${esc(x.name)}</button>`).join('')}</div>
+      <div class="kstyles${cfg.styles.length > 4 ? ' many' : ''}">${cfg.styles.map((x, i) => `<button type="button" class="kstyle" data-style="${i}" aria-pressed="${st.style === i}"><span class="sw" style="background:linear-gradient(160deg,${esc(x.from)},${esc(x.to)})"></span>${esc(x.name)}</button>`).join('')}</div>
       <div class="field"><label for="kName">${isGroup() ? 'Names' : 'Your name'} <span class="hint">(optional, shown in the gallery)</span></label><input id="kName" maxlength="80" value="${esc(st.name)}" autocomplete="off"></div>
       <button type="button" class="kbtn primary" data-act="make" ${st.style == null ? 'disabled' : ''}>${esc(cfg.verb)}</button>
       <button type="button" class="kbtn link" data-act="retake">Retake photo</button>`,

@@ -2,6 +2,7 @@
 $current = request_path();
 $nav = [
     admin_base() => 'Contests',
+    admin_base() . '/gallery' => 'Gallery',
     admin_base() . '/settings' => 'Site settings',
 ];
 ?><!doctype html>

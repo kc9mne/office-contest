@@ -17,3 +17,6 @@ __pycache__/
 Thumbs.db
 .vscode/
 .idea/
+
+# Uploaded media and the encryption key for saved secrets (server only)
+storage/

@@ -58,9 +58,9 @@ $currentTz = site_tz()->getName();
     <div class="copy"><code id="boothLink"><?= e($boothLink) ?></code><button class="btn small ghost" type="button" data-copy="boothLink">Copy</button><a class="btn small ghost" href="<?= e($boothLink) ?>" target="_blank" rel="noopener">Open</a></div>
     <div class="row small">
       <?php if (booth_ai_configured()): ?>
-        <span class="chip ok">AI connected</span><span class="muted">Model: <?= e(env('OPENAI_IMAGE_MODEL', 'gpt-image-1')) ?></span>
+        <span class="chip ok">AI connected</span>
       <?php else: ?>
-        <span class="chip">Demo mode</span><span class="muted">No AI key yet. Photos get a color filter instead. Add <code>OPENAI_API_KEY</code> to the server's <code>.env</code> file to turn on AI.</span>
+        <span class="chip">Demo mode</span><span class="muted">No AI key yet, so photos get a color filter. <a href="#ai">Add a key below.</a></span>
       <?php endif; ?>
     </div>
     <div class="row small muted">
@@ -71,6 +71,70 @@ $currentTz = site_tz()->getName();
     <div><button class="btn ghost danger" type="submit">Make a new photobooth link</button></div>
   </fieldset>
 </form>
+
+<?php $keySource = openai_key_source(); $savedKey = openai_saved_key(); $brokenKey = setting('openai_api_key_enc') && $savedKey === null; ?>
+<section class="card stack" id="ai" style="gap:14px">
+  <h2 style="font-size:18px">Photobooth AI</h2>
+  <p class="hint" style="margin:0">The photobooth uses OpenAI to restyle photos. Get a key at platform.openai.com under API keys. It's stored encrypted and never shown in full again.</p>
+
+  <div class="row small">
+    <?php if ($keySource === 'env'): ?>
+      <span class="chip ok">Key set on the server</span><span class="muted">It comes from the server's <code>.env</code> file, which takes priority over a key saved here.</span>
+    <?php elseif ($keySource === 'admin'): ?>
+      <span class="chip ok">Key saved</span><span class="mono"><?= e(mask_secret($savedKey)) ?></span>
+    <?php else: ?>
+      <span class="chip">No key</span><span class="muted">The photobooth runs in demo mode.</span>
+    <?php endif; ?>
+  </div>
+  <?php if ($brokenKey): ?><div class="alert"><strong>The saved key can't be read.</strong> The server's encryption file (storage/app.key) changed. Paste the key again.</div><?php endif; ?>
+
+  <?php if ($keySource !== 'env'): ?>
+  <form class="stack" method="post" novalidate style="gap:10px">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="ai_key_save">
+    <div class="<?= $cls('openai_key') ?>">
+      <label for="openai_key"><?= $keySource === 'admin' ? 'Replace the key' : 'OpenAI API key' ?></label>
+      <input id="openai_key" name="openai_key" type="password" autocomplete="off" spellcheck="false" placeholder="sk-...">
+      <span class="hint">It's checked with OpenAI (free) before it's saved.</span>
+      <?= $err('openai_key') ?>
+    </div>
+    <div><button class="btn primary" type="submit">Save key</button></div>
+  </form>
+  <?php elseif (isset($errors['openai_key'])): ?><?= $err('openai_key') ?><?php endif; ?>
+
+  <?php if ($keySource !== null): ?>
+  <div class="row">
+    <form class="inline" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="ai_key_test"><button class="btn ghost small" type="submit">Test the key</button></form>
+    <?php if ($keySource === 'admin'): ?>
+      <form class="inline" method="post"><?= csrf_field() ?><input type="hidden" name="action" value="ai_key_remove"><button class="btn ghost small danger" type="submit">Remove the key</button></form>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+
+  <form class="stack" method="post" novalidate style="gap:10px; border-top:1px solid var(--line); padding-top:14px">
+    <?= csrf_field() ?>
+    <input type="hidden" name="action" value="ai_options">
+    <div class="grid2">
+      <div class="<?= $cls('openai_model') ?>">
+        <label for="openai_model">Image model</label>
+        <input id="openai_model" name="openai_model" value="<?= e(openai_model()) ?>" list="modelList" maxlength="60" spellcheck="false">
+        <datalist id="modelList"><option value="gpt-image-1"><option value="gpt-image-1-mini"></datalist>
+        <span class="hint">gpt-image-1 keeps faces most recognizable.</span>
+        <?= $err('openai_model') ?>
+      </div>
+      <div class="<?= $cls('openai_quality') ?>">
+        <label for="openai_quality">Quality</label>
+        <select id="openai_quality" name="openai_quality">
+          <?php foreach (['low' => 'Low (cheapest, fastest)', 'medium' => 'Medium (recommended)', 'high' => 'High (costs the most)'] as $q => $label): ?>
+            <option value="<?= $q ?>" <?= openai_quality() === $q ? 'selected' : '' ?>><?= e($label) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <?= $err('openai_quality') ?>
+      </div>
+    </div>
+    <div><button class="btn ghost" type="submit">Save AI options</button></div>
+  </form>
+</section>
 
 <form class="card" method="post" novalidate>
   <?= csrf_field() ?>

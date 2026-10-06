@@ -48,7 +48,7 @@ Admins open the admin page with a secret link plus a PIN. From there they can:
 - Photo approval is available but off by default.
 
 ## Security notes
-- **The AI API key stays on the server.** Keep it in an environment variable or a `.env` file. `.env` is listed in `.gitignore`, so never commit the key.
+- **The AI API key stays on the server.** Add it in Admin → Site settings → Photobooth AI, where it's stored encrypted (the encryption key is `storage/app.key`, outside the web root), or put it in `.env`. Neither file is in git. Back up `storage/app.key` with your database, or you'll need to re-enter the key after a restore.
 - **Protect the photobooth page** with its own PIN or secret link, plus the daily photo limit, so strangers can't run up the AI bill.
 - **Photos are sent to an outside AI service.** Check this is OK under your company's policy. The booth screen shows a notice.
 

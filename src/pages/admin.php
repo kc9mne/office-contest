@@ -191,6 +191,51 @@ function admin_settings(): void
                 flash('PIN changed.');
                 redirect(admin_base() . '/settings');
             }
+        } elseif ($action === 'ai_key_save') {
+            $key = preg_replace('/\s+/', '', (string) ($_POST['openai_key'] ?? ''));
+            if (strlen($key) < 20 || strlen($key) > 400) {
+                $errors['openai_key'] = 'Paste the whole key. OpenAI keys start with "sk-" and are long.';
+            } else {
+                [$ok, $message] = openai_check_key($key);
+                $unreachable = str_starts_with($message, 'Could not reach');
+                if ($ok || $unreachable) {
+                    set_setting('openai_api_key_enc', encrypt_secret($key));
+                    flash($ok ? "Key saved. {$message}" : "Key saved, but it couldn't be checked. {$message}");
+                    redirect(admin_base() . '/settings#ai');
+                }
+                $errors['openai_key'] = $message;
+            }
+        } elseif ($action === 'ai_key_test') {
+            $key = openai_api_key();
+            if ($key === null) {
+                $errors['openai_key'] = 'There is no key to test yet.';
+            } else {
+                [$ok, $message] = openai_check_key($key);
+                if ($ok) {
+                    flash($message);
+                    redirect(admin_base() . '/settings#ai');
+                }
+                $errors['openai_key'] = $message;
+            }
+        } elseif ($action === 'ai_key_remove') {
+            set_setting('openai_api_key_enc', '');
+            flash('Key removed. The photobooth is in demo mode until you add one.');
+            redirect(admin_base() . '/settings#ai');
+        } elseif ($action === 'ai_options') {
+            $model = post_str('openai_model', 60);
+            $quality = post_str('openai_quality', 10);
+            if (!preg_match('/^[a-z0-9][a-z0-9.\-]*$/i', $model)) {
+                $errors['openai_model'] = 'Enter a model name, like gpt-image-1.';
+            }
+            if (!in_array($quality, ['low', 'medium', 'high'], true)) {
+                $errors['openai_quality'] = 'Pick a quality.';
+            }
+            if (!$errors) {
+                set_setting('openai_model', $model);
+                set_setting('openai_quality', $quality);
+                flash('AI options saved.');
+                redirect(admin_base() . '/settings#ai');
+            }
         } elseif ($action === 'new_booth_link') {
             set_setting('booth_token', bin2hex(random_bytes(8)));
             flash('New photobooth link created. Open it on the booth device; the old link no longer works.');

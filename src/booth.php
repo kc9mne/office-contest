@@ -40,9 +40,70 @@ function booth_base(): string
     return '/booth/' . booth_token();
 }
 
+/** 'env' when the key comes from .env (takes priority), 'admin' when saved in Admin, null when there's none. */
+function openai_key_source(): ?string
+{
+    if (env('OPENAI_API_KEY') !== null) {
+        return 'env';
+    }
+    return openai_saved_key() !== null ? 'admin' : null;
+}
+
+function openai_saved_key(): ?string
+{
+    $stored = setting('openai_api_key_enc');
+    return $stored ? decrypt_secret($stored) : null;
+}
+
+function openai_api_key(): ?string
+{
+    return env('OPENAI_API_KEY') ?? openai_saved_key();
+}
+
+function openai_model(): string
+{
+    return setting('openai_model') ?: env('OPENAI_IMAGE_MODEL', 'gpt-image-1');
+}
+
+function openai_quality(): string
+{
+    return setting('openai_quality') ?: env('OPENAI_IMAGE_QUALITY', 'medium');
+}
+
 function booth_ai_configured(): bool
 {
-    return env('OPENAI_API_KEY') !== null;
+    return openai_api_key() !== null;
+}
+
+/**
+ * Check a key with a free request (list models). Returns [ok, message].
+ */
+function openai_check_key(string $key): array
+{
+    $ch = curl_init('https://api.openai.com/v1/models');
+    curl_setopt_array($ch, [
+        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . $key],
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_CONNECTTIMEOUT => 10,
+        CURLOPT_TIMEOUT => 20,
+    ]);
+    $body = curl_exec($ch);
+    if ($body === false) {
+        return [false, 'Could not reach OpenAI to check the key: ' . curl_error($ch)];
+    }
+    $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    if ($status === 200) {
+        $ids = array_column(json_decode((string) $body, true)['data'] ?? [], 'id');
+        $model = openai_model();
+        return in_array($model, $ids, true)
+            ? [true, "The key works and can use {$model}."]
+            : [true, "The key works, but {$model} isn't in its model list. Your OpenAI organization may need verifying before it can use image models."];
+    }
+    if ($status === 401) {
+        return [false, 'OpenAI rejected that key. Check you copied all of it.'];
+    }
+    $message = json_decode((string) $body, true)['error']['message'] ?? "HTTP {$status}";
+    return [false, 'OpenAI returned an error: ' . $message];
 }
 
 /** Looks for a contest: its own list, or the mode's defaults. */
@@ -210,10 +271,10 @@ function booth_process(array $photo, array $contest, array $style): array
 function openai_restyle(string $sourcePath, string $prompt, string $size): string
 {
     $fields = [
-        'model' => env('OPENAI_IMAGE_MODEL', 'gpt-image-1'),
+        'model' => openai_model(),
         'prompt' => $prompt,
         'size' => $size,
-        'quality' => env('OPENAI_IMAGE_QUALITY', 'medium'),
+        'quality' => openai_quality(),
         'n' => '1',
     ];
     $fidelity = env('OPENAI_INPUT_FIDELITY', 'high');
@@ -254,7 +315,7 @@ function openai_post_image(string $sourcePath, array $fields): array
     curl_setopt_array($ch, [
         CURLOPT_POST => true,
         CURLOPT_POSTFIELDS => $fields + ['image' => new CURLFile($sourcePath, 'image/jpeg', 'photo.jpg')],
-        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . env('OPENAI_API_KEY')],
+        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . openai_api_key()],
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CONNECTTIMEOUT => 15,
         CURLOPT_TIMEOUT => 200,

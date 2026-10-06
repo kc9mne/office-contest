@@ -16,6 +16,7 @@ require APP_ROOT . '/src/modes.php';
 require APP_ROOT . '/src/contests.php';
 require APP_ROOT . '/src/auth.php';
 require APP_ROOT . '/src/uploads.php';
+require APP_ROOT . '/src/secrets.php';
 require APP_ROOT . '/src/booth.php';
 require APP_ROOT . '/src/qr.php';
 

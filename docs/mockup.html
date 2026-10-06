@@ -1,0 +1,989 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>Costume Contest Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: planning notes on the left, a clickable phone prototype on the right; stacks on phones.
+   Each contest mode (Halloween / Holiday / General) swaps the accent tokens on .app. */
+:root {
+  --bg: #F1EDF5;
+  --surface: #FFFFFF;
+  --surface-2: #E8E1EF;
+  --fg: #231A2E;
+  --muted: #6A5E78;
+  --line: #D7CDE1;
+  --accent: #D9530F;       /* Halloween pumpkin */
+  --accent-fg: #FFFFFF;
+  --accent-soft: #FBE3D4;
+  --second: #5B3A8C;       /* Halloween plum */
+  --vid-a: #3B1F5C; --vid-b: #D9530F;
+  --gold: #B88700; --silver: #7E7E8E; --bronze: #A0602E;
+  --ok: #2F7D4F; --warn: #A35A00; --warn-soft: #FCEBD0;
+  --stage: #120D18; --stage-2: #1E1726; --stage-line: #3A2F48; --stage-fg: #F4EEF8; --stage-muted: #A99BB8; --wall: #8C9097;
+  --font-display: "Bowlby One SC", "Arial Black", Impact, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+.app[data-mode="holiday"] { --accent: #C0283A; --accent-soft: #F8DDE0; --second: #1F6B47; --vid-a: #1F6B47; --vid-b: #C0283A; }
+.app[data-mode="general"] { --accent: #0E7C86; --accent-soft: #D3EEF0; --second: #9A6A00; --vid-a: #0E5A61; --vid-b: #C98A00; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15101C; --surface: #211A2B; --surface-2: #2C2338; --fg: #F1EAF7; --muted: #A99BB8;
+    --line: #3A2F48; --accent: #FF7A2E; --accent-fg: #1A1020; --accent-soft: #3D2418; --second: #B48CF0;
+    --gold: #F2C230; --silver: #C3C3D1; --bronze: #D98A4E; --ok: #5FC489; --warn: #F2B24C; --warn-soft: #3A2A12; color-scheme: dark;
+  }
+  :root:not([data-theme="light"]) .app[data-mode="holiday"] { --accent: #FF5C6C; --accent-soft: #3D1A20; --second: #5FC489; }
+  :root:not([data-theme="light"]) .app[data-mode="general"] { --accent: #3CC6D0; --accent-soft: #123538; --second: #F2C230; }
+}
+:root[data-theme="dark"] {
+  --bg: #15101C; --surface: #211A2B; --surface-2: #2C2338; --fg: #F1EAF7; --muted: #A99BB8;
+  --line: #3A2F48; --accent: #FF7A2E; --accent-fg: #1A1020; --accent-soft: #3D2418; --second: #B48CF0;
+  --gold: #F2C230; --silver: #C3C3D1; --bronze: #D98A4E; --ok: #5FC489; --warn: #F2B24C; --warn-soft: #3A2A12; color-scheme: dark;
+}
+:root[data-theme="dark"] .app[data-mode="holiday"] { --accent: #FF5C6C; --accent-soft: #3D1A20; --second: #5FC489; }
+:root[data-theme="dark"] .app[data-mode="general"] { --accent: #3CC6D0; --accent-soft: #123538; --second: #F2C230; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1140px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 56px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+button, input, select { font: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* top */
+.top { display: grid; gap: 14px; margin-bottom: 24px; }
+.eyebrow { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.top h1 { font-family: var(--font-display); font-weight: 400; font-size: clamp(28px, 4.5vw, 44px); line-height: 1.05; }
+.top h1 span { color: var(--accent); }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 24px; }
+.ctl { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ctl .lbl { font-size: 13px; color: var(--muted); }
+.seg { display: inline-flex; flex-wrap: wrap; background: var(--surface-2); border-radius: 999px; padding: 3px; }
+.seg button { border: 0; background: transparent; padding: 6px 14px; border-radius: 999px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 40px; align-items: start; }
+@media (max-width: 880px) { .layout { grid-template-columns: 1fr; } .device { order: -1; } }
+
+/* notes */
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 18px; }
+.tabs button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 7px 12px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.tabs button[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.note { min-width: 0; }
+.note h2 { font-size: 22px; margin-bottom: 6px; }
+.note .lede { color: var(--muted); max-width: 60ch; margin: 0 0 18px; }
+.note h3 { font-size: 13px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 22px 0 8px; }
+.note ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; max-width: 64ch; }
+.mark { list-style: none; padding: 0 !important; }
+.mark li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; }
+.mark li::before { font-family: var(--font-mono); font-weight: 700; border-radius: 6px; width: 22px; height: 22px; display: grid; place-items: center; font-size: 13px; margin-top: 1px; }
+.mark.q li::before { content: "?"; color: var(--accent); background: var(--accent-soft); }
+.mark.d li::before { content: "✓"; color: var(--ok); background: var(--surface-2); }
+
+.plan { margin-top: 48px; border-top: 1px solid var(--line); padding-top: 28px; }
+.plan h2 { font-family: var(--font-display); font-weight: 400; font-size: 24px; margin-bottom: 14px; }
+.plan-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+.plan-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.plan-card h3 { font-size: 15px; margin-bottom: 8px; }
+.plan-card ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; color: var(--muted); font-size: 14px; }
+.plan-card li strong { color: var(--fg); font-weight: 600; }
+
+/* device */
+.device { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+.phone { width: 100%; max-width: 390px; margin: 0 auto; height: 780px; border-radius: 44px; background: #0E0A12; padding: 12px; box-shadow: 0 20px 50px rgb(20 10 30 / .28); }
+.screen { height: 100%; border-radius: 34px; overflow: hidden; background: var(--bg); display: flex; flex-direction: column; position: relative; }
+@media (max-width: 480px) {
+  .phone { height: 740px; border-radius: 0; padding: 0; background: transparent; box-shadow: none; }
+  .screen { border-radius: 16px; border: 1px solid var(--line); }
+}
+.appbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 18px 18px 10px; }
+.brand { font-family: var(--font-display); font-size: 15px; line-height: 1; }
+.brand small { display: block; font-family: var(--font-body); font-size: 11px; color: var(--muted); letter-spacing: .04em; margin-top: 3px; }
+.pill { flex: none; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; display: inline-flex; gap: 6px; align-items: center; }
+.pill.live { background: var(--accent-soft); color: var(--accent); }
+.pill.live::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: blink 1.4s infinite; }
+.pill.soon { background: var(--surface-2); color: var(--second); }
+.pill.done { background: var(--surface-2); color: var(--muted); }
+@keyframes blink { 50% { opacity: .25; } }
+@media (prefers-reduced-motion: reduce) { .pill.live::before { animation: none; } }
+
+.body { flex: 1; overflow-y: auto; padding: 4px 16px 20px; display: grid; gap: 16px; align-content: start; }
+.nav { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); background: var(--surface); padding: 6px 6px 14px; }
+.nav button { border: 0; background: transparent; display: grid; justify-items: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--muted); padding: 6px 0; cursor: pointer; border-radius: 10px; }
+.nav button svg { width: 22px; height: 22px; }
+.nav button[aria-current="page"] { color: var(--accent); }
+
+/* home */
+.clock { background: var(--fg); color: var(--bg); border-radius: 16px; padding: 14px 16px; }
+.clock .k { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .7; font-weight: 600; }
+.digits { display: flex; gap: 12px; margin: 6px 0 8px; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.digits div { display: grid; }
+.digits b { font-size: 28px; line-height: 1; }
+.digits span { font-size: 10px; opacity: .6; text-transform: uppercase; letter-spacing: .08em; margin-top: 3px; }
+.window { font-size: 12px; opacity: .85; display: grid; gap: 1px; }
+.window strong { font-weight: 600; }
+
+.sec-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.sec-h h3 { font-family: var(--font-display); font-weight: 400; font-size: 17px; }
+.sec-h button { border: 0; background: none; color: var(--accent); font-weight: 600; font-size: 13px; cursor: pointer; padding: 0; }
+
+.podium { display: grid; grid-template-columns: 1fr 1.15fr 1fr; gap: 8px; align-items: end; }
+.pod { display: grid; gap: 5px; text-align: center; min-width: 0; }
+.pod .photo { border-radius: 14px; aspect-ratio: 3/4; }
+.pod.first .photo { box-shadow: 0 0 0 3px var(--gold); }
+.pod .medal { font-family: var(--font-mono); font-weight: 700; font-size: 12px; }
+.pod.first .medal { color: var(--gold); } .pod.second .medal { color: var(--silver); } .pod.third .medal { color: var(--bronze); }
+.pod .nm { font-weight: 700; font-size: 13px; line-height: 1.2; overflow-wrap: anywhere; }
+.pod .cs { font-size: 11px; color: var(--muted); line-height: 1.25; }
+.pod .vt { font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.leaders { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; display: grid; }
+.leader { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; padding: 9px 10px; border: 0; background: none; text-align: left; cursor: pointer; width: 100%; }
+.leader + .leader { border-top: 1px solid var(--line); }
+.leader .photo { width: 40px; height: 40px; border-radius: 9px; font-size: 13px; }
+.leader .c { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--second); }
+.leader b { display: block; font-size: 13px; line-height: 1.2; }
+.leader .v { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.photo { width: 100%; max-width: 100%; display: grid; place-items: center; font-family: var(--font-display); color: rgb(255 255 255 / .92); font-size: 28px; position: relative; overflow: hidden; background-size: cover; background-position: center; }
+.photo .tag { position: absolute; left: 6px; bottom: 6px; font-family: var(--font-body); font-size: 10px; font-weight: 700; background: rgb(0 0 0 / .5); color: #fff; padding: 2px 6px; border-radius: 6px; letter-spacing: .02em; }
+
+.cta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btn { border: 0; border-radius: 12px; padding: 12px 14px; font-weight: 700; cursor: pointer; font-size: 14px; }
+.btn.primary { background: var(--accent); color: var(--accent-fg); }
+.btn.ghost { background: var(--surface); border: 1px solid var(--line); }
+.btn.small { padding: 9px 12px; font-size: 13px; border-radius: 10px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.block { width: 100%; }
+
+.event-teaser { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px; cursor: pointer; text-align: left; }
+.vid { aspect-ratio: 16/9; border-radius: 10px; background: linear-gradient(135deg, var(--vid-a), var(--vid-b)); display: grid; place-items: center; max-width: 100%; }
+.vid svg { width: 26px; height: 26px; fill: #fff; }
+.event-teaser b { display: block; font-size: 14px; }
+.event-teaser span { font-size: 12px; color: var(--muted); }
+
+.banner { background: var(--accent-soft); color: var(--fg); border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+.banner b { color: var(--accent); }
+
+/* vote */
+.namegate { background: var(--surface); border: 2px solid var(--accent); border-radius: 14px; padding: 12px; display: grid; gap: 8px; }
+.namegate b { font-size: 14px; }
+.namegate p { margin: 0; font-size: 12px; color: var(--muted); }
+.namegate .r { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.namegate input { border: 1px solid var(--line); background: var(--bg); border-radius: 10px; padding: 9px 12px; min-width: 0; }
+.namegate.shake { animation: shake .35s; }
+@keyframes shake { 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+@media (prefers-reduced-motion: reduce) { .namegate.shake { animation: none; } }
+.who { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; }
+.who b { color: var(--fg); }
+.who .dev { font-family: var(--font-mono); font-size: 11px; }
+
+.cats { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.cats button { flex: none; border: 1px solid var(--line); background: var(--surface); padding: 6px 11px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.cats button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.cats .done { width: 14px; height: 14px; border-radius: 50%; display: grid; place-items: center; font-size: 9px; background: var(--ok); color: #fff; }
+.filters { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.filters button { flex: none; border: 1px solid var(--line); background: transparent; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; cursor: pointer; color: var(--muted); }
+.filters button[aria-pressed="true"] { color: var(--fg); border-color: var(--fg); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: grid; min-width: 0; }
+.card.mine { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
+.card .photo { aspect-ratio: 1; border-radius: 0; }
+.card .meta { padding: 8px 10px 10px; display: grid; gap: 6px; }
+.card .nm { font-weight: 700; font-size: 13px; line-height: 1.2; }
+.card .cs { font-size: 12px; color: var(--muted); line-height: 1.25; }
+.card .vote { border: 0; border-radius: 9px; padding: 7px; font-weight: 700; font-size: 12px; cursor: pointer; background: var(--surface-2); }
+.card.mine .vote { background: var(--accent); color: var(--accent-fg); }
+
+/* forms */
+.field { display: grid; gap: 5px; }
+.field label { font-size: 12px; font-weight: 700; letter-spacing: .03em; }
+.field textarea { resize: vertical; font-size: 13px; }
+.field input, .field select, .field textarea { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px 12px; width: 100%; min-width: 0; }
+.hint { font-size: 11px; color: var(--muted); }
+.shot { border: 2px dashed var(--line); border-radius: 16px; aspect-ratio: 4/5; max-width: 100%; display: grid; place-items: center; text-align: center; cursor: pointer; background: var(--surface); position: relative; overflow: hidden; background-size: cover; background-position: center; }
+.shot:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.shot svg { width: 40px; height: 40px; stroke: var(--muted); fill: none; stroke-width: 1.6; }
+.shot .t { font-weight: 700; font-size: 14px; margin-top: 6px; }
+.shot .s { font-size: 12px; color: var(--muted); }
+.shot.has { border-style: solid; border-color: var(--accent); }
+.shot.has > div { display: none; }
+.sr { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.check { display: flex; gap: 8px; align-items: flex-start; font-size: 12px; color: var(--muted); }
+.toast { position: absolute; left: 16px; right: 16px; bottom: 84px; background: var(--fg); color: var(--bg); padding: 10px 14px; border-radius: 12px; font-size: 13px; font-weight: 600; z-index: 2; }
+.err { color: var(--accent); font-size: 12px; font-weight: 600; }
+
+/* videos */
+.vcard { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.vcard .vid { border-radius: 0; }
+.vcard .meta { padding: 10px 12px; display: grid; gap: 2px; }
+.vcard .meta b { font-size: 14px; }
+.vcard .meta span { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.src { display: inline-flex; width: fit-content; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; background: var(--surface-2); color: var(--second); }
+.or { display: grid; grid-template-columns: 1fr auto 1fr; gap: 10px; align-items: center; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+.or::before, .or::after { content: ""; height: 1px; background: var(--line); }
+.panel { display: grid; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.panel > b { font-size: 14px; }
+
+/* organizer */
+.qrbox { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: center; }
+.qrbox canvas { width: 96px; height: 96px; max-width: 100%; image-rendering: pixelated; background: #fff; padding: 5px; border-radius: 8px; }
+.qrbox .url { font-family: var(--font-mono); font-size: 11px; color: var(--muted); overflow-wrap: anywhere; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.toggle { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; font-size: 13px; }
+.toggle span small { display: block; color: var(--muted); font-size: 11px; }
+.switch { appearance: none; width: 40px; height: 24px; border-radius: 999px; background: var(--line); position: relative; cursor: pointer; transition: background .15s; margin: 0; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 2px rgb(0 0 0 / .25); }
+.switch:checked { background: var(--accent); }
+.switch:checked::after { transform: translateX(16px); }
+.switch:disabled { opacity: .6; cursor: not-allowed; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; background: var(--surface-2); border-radius: 8px; padding: 4px 4px 4px 9px; font-size: 12px; font-weight: 700; }
+.chip.fixed { padding-right: 9px; color: var(--second); }
+.chip button { border: 0; background: transparent; cursor: pointer; width: 20px; height: 20px; border-radius: 5px; color: var(--muted); font-size: 14px; line-height: 1; }
+.addcat { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.addcat input { border: 1px solid var(--line); background: var(--bg); border-radius: 9px; padding: 7px 10px; min-width: 0; font-size: 13px; }
+.log { display: grid; }
+.lrow { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 12px; align-items: center; }
+.lrow:first-child { border-top: 0; }
+.lrow b { font-size: 13px; }
+.lrow .m { color: var(--muted); font-family: var(--font-mono); font-size: 11px; font-variant-numeric: tabular-nums; }
+.lrow .flag { grid-column: 1 / -1; display: inline-flex; width: fit-content; gap: 5px; align-items: center; background: var(--warn-soft); color: var(--warn); font-weight: 700; font-size: 11px; padding: 2px 7px; border-radius: 6px; }
+.lrow.void b, .lrow.void .m { text-decoration: line-through; opacity: .6; }
+.lrow .vbtn { border: 1px solid var(--line); background: var(--surface-2); border-radius: 8px; padding: 4px 8px; font-size: 11px; font-weight: 700; cursor: pointer; grid-row: span 2; }
+.queue { display: grid; gap: 8px; }
+.qitem { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; }
+.qitem .photo { width: 44px; height: 44px; border-radius: 8px; font-size: 14px; }
+.qitem b { font-size: 13px; display: block; } .qitem span { font-size: 11px; color: var(--muted); }
+.qitem .acts { display: flex; gap: 4px; }
+.qitem .acts button { border: 1px solid var(--line); background: var(--surface-2); border-radius: 8px; padding: 5px 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
+.qitem .acts .yes { color: var(--ok); }
+.brandrow { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.logo { flex: none; width: 34px; height: 34px; border-radius: 9px; display: grid; place-items: center; background: var(--fg); color: var(--bg); font-family: var(--font-display); font-size: 13px; overflow: hidden; }
+.logo img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.logoedit { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; }
+.logoedit .logo { width: 64px; height: 64px; font-size: 20px; border-radius: 14px; }
+.contests { display: grid; gap: 6px; }
+.crow { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; font-size: 13px; }
+.crow small { display: block; color: var(--muted); font-size: 11px; }
+.st { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; background: var(--surface-2); color: var(--muted); }
+.st.on { background: var(--accent-soft); color: var(--accent); }
+.manage { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.poster-logo { font-size: 11px; color: var(--muted); }
+.colorrow { display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; }
+.colorrow input[type="color"] { width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 2px; background: var(--surface); cursor: pointer; }
+.gseg { width: 100%; display: grid; grid-template-columns: 1fr 1fr; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.bfig { margin: 0; display: grid; gap: 3px; min-width: 0; }
+.bfig .photo { aspect-ratio: 3/4; border-radius: 10px; font-size: 16px; }
+.bfig figcaption { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bart { position: relative; aspect-ratio: 3/4; max-width: 100%; border-radius: 10px; overflow: hidden; display: grid; place-items: end center; }
+.bart .sil { width: 80%; fill: rgb(255 255 255 / .38); }
+.bart .tag { position: absolute; left: 6px; top: 6px; font-size: 10px; font-weight: 700; background: rgb(0 0 0 / .5); color: #fff; padding: 2px 6px; border-radius: 6px; }
+
+/* photobooth kiosk: one fixed dark look in both themes, mode accent on top */
+.layout.booth { grid-template-columns: 1fr; }
+.layout.booth .device { position: static; order: -1; }
+.tablet { width: 100%; max-width: 920px; margin: 0 auto; height: 620px; border-radius: 32px; background: #0E0A12; padding: 14px; box-shadow: 0 20px 50px rgb(20 10 30 / .28); }
+.kiosk { height: 100%; border-radius: 20px; overflow: hidden; background: var(--stage); color: var(--stage-fg); display: flex; flex-direction: column; color-scheme: dark; }
+.khead { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; }
+.khead .brand small { color: var(--stage-muted); }
+.kiosk .logo { background: var(--stage-fg); color: var(--stage); }
+.kbody { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 20px; padding: 0 18px 18px; }
+.camwrap { min-height: 0; position: relative; }
+.cam { position: relative; height: 100%; border-radius: 16px; overflow: hidden; display: grid; place-items: end center; }
+.wall { background: radial-gradient(ellipse at 50% 30%, #A2A6AD, var(--wall)); }
+.wall .sil { width: 62%; max-width: 320px; fill: #3A3340; }
+.kchip { position: absolute; top: 10px; left: 10px; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: rgb(0 0 0 / .55); color: #fff; }
+.kchip.rec::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #FF4A4A; margin-right: 6px; vertical-align: 1px; }
+.count { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-display); font-size: 160px; line-height: 1; color: #fff; text-shadow: 0 4px 30px rgb(0 0 0 / .5); }
+.flash { position: absolute; inset: 0; background: #fff; animation: flash .6s forwards; pointer-events: none; }
+@keyframes flash { to { opacity: 0; } }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; height: 100%; }
+.split .cam, .split .bart { height: 100%; aspect-ratio: auto; border-radius: 14px; }
+.split .bart .tag { top: 10px; left: 10px; font-size: 11px; }
+.shimmer { position: absolute; inset: 0; background: linear-gradient(100deg, transparent 30%, rgb(255 255 255 / .35) 50%, transparent 70%); background-size: 200% 100%; animation: shim 1.4s linear infinite; }
+@keyframes shim { from { background-position: 150% 0; } to { background-position: -50% 0; } }
+.kside { display: flex; flex-direction: column; justify-content: center; gap: 12px; min-width: 0; }
+.kside h2 { font-family: var(--font-display); font-weight: 400; font-size: 30px; line-height: 1.05; }
+.kside p { margin: 0; color: var(--stage-muted); }
+.kside p b { color: var(--stage-fg); }
+.kbtn { border: 0; border-radius: 14px; padding: 16px 18px; font-weight: 800; font-size: 18px; cursor: pointer; }
+.kbtn.primary { background: var(--accent); color: var(--accent-fg); }
+.kbtn.ghost { background: var(--stage-2); color: var(--stage-fg); border: 1px solid var(--stage-line); }
+.kbtn.link { background: none; color: var(--stage-muted); font-size: 14px; font-weight: 600; padding: 4px; text-decoration: underline; }
+.kbtn:disabled { opacity: .4; cursor: not-allowed; }
+.kacts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.kacts.col { grid-template-columns: 1fr; }
+.kstyles { display: grid; gap: 8px; }
+.kstyle { display: flex; align-items: center; gap: 10px; background: var(--stage-2); border: 2px solid transparent; color: var(--stage-fg); border-radius: 12px; padding: 9px 12px; font-weight: 700; cursor: pointer; text-align: left; }
+.kstyle[aria-pressed="true"] { border-color: var(--accent); }
+.kstyle .sw { width: 28px; height: 28px; border-radius: 8px; flex: none; }
+.kiosk .field label { color: var(--stage-fg); }
+.kiosk .field input { background: var(--stage-2); border-color: var(--stage-line); color: var(--stage-fg); }
+.kfine { font-size: 12px; }
+.spin { width: 44px; height: 44px; border-radius: 50%; border: 4px solid var(--stage-2); border-top-color: var(--accent); animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.kqr { display: flex; gap: 12px; align-items: center; color: var(--stage-muted); font-size: 14px; }
+.kqr canvas { width: 110px; height: 110px; flex: none; image-rendering: pixelated; background: #fff; padding: 6px; border-radius: 8px; }
+.koff { flex: 1; display: grid; place-content: center; justify-items: center; gap: 12px; text-align: center; padding: 20px; color: var(--stage-muted); }
+.koff b { color: var(--stage-fg); font-size: 18px; }
+@media (max-width: 700px) {
+  .tablet { height: auto; min-height: 660px; padding: 8px; border-radius: 20px; }
+  .kbody { grid-template-columns: 1fr; }
+  .camwrap { height: 300px; }
+  .count { font-size: 110px; }
+}
+@media (prefers-reduced-motion: reduce) { .shimmer, .spin { animation: none; } .flash { animation: none; opacity: 0; } }
+.mock-note { font-size: 11px; color: var(--muted); text-align: center; margin-top: 10px; }
+</style>
+
+<div class="wrap app" id="app" data-mode="halloween">
+  <header class="top">
+    <div>
+      <div class="eyebrow">Planning mockup · Office contests</div>
+      <h1>Office <span>Contest</span> Site</h1>
+    </div>
+    <div class="controls">
+      <div class="ctl" role="group" aria-label="Contest mode">
+        <span class="lbl">Mode</span>
+        <div class="seg" id="modeSeg">
+          <button type="button" data-mode="halloween" aria-pressed="true">Halloween</button>
+          <button type="button" data-mode="holiday" aria-pressed="false">Holiday party</button>
+          <button type="button" data-mode="general" aria-pressed="false">General</button>
+        </div>
+      </div>
+      <div class="ctl" role="group" aria-label="Contest phase">
+        <span class="lbl">Show it</span>
+        <div class="seg" id="phaseSeg">
+          <button type="button" data-phase="before" aria-pressed="false">Before start</button>
+          <button type="button" data-phase="live" aria-pressed="true">Voting open</button>
+          <button type="button" data-phase="closed" aria-pressed="false">Closed</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout" id="layout">
+    <section class="note">
+      <div class="tabs" role="tablist" id="noteTabs"></div>
+      <div id="noteBody" aria-live="polite"></div>
+
+      <div class="plan">
+        <h2>Plan at a glance</h2>
+        <div class="plan-grid">
+          <div class="plan-card">
+            <h3>Decided</h3>
+            <ul>
+              <li><strong>No logins.</strong> One vote per device, and voters type their name.</li>
+              <li><strong>Voter list</strong> for admins, with likely duplicates flagged.</li>
+              <li><strong>Overall</strong> = total of all category votes. One entry can win several categories, and ties share a place.</li>
+              <li><strong>Photo approval</strong> is a setting, off by default.</li>
+              <li><strong>Three modes:</strong> Halloween, Holiday party, General.</li>
+              <li><strong>Videos:</strong> stored on our servers (up to 300 MB) or YouTube links.</li>
+              <li><strong>Branding:</strong> logo, company name, optional brand color.</li>
+              <li><strong>Admin access:</strong> secret link plus PIN.</li>
+              <li><strong>Photobooth</strong> page for a tablet or webcam PC, with AI restyling.</li>
+            </ul>
+          </div>
+          <div class="plan-card">
+            <h3>Photobooth flow</h3>
+            <ul>
+              <li><strong>Booth page</strong> on a tablet or PC takes the photo in the browser</li>
+              <li><strong>Our server</strong> stores it and sends it to the AI image service with the chosen look's instructions</li>
+              <li><strong>The API key</strong> stays on the server and never reaches the booth or phones</li>
+              <li><strong>The restyled photo</strong> comes back, is saved, and appears in the gallery</li>
+            </ul>
+          </div>
+          <div class="plan-card">
+            <h3>How each mode differs</h3>
+            <ul>
+              <li><strong>Colors and wording</strong> (costume, sweater, dish)</li>
+              <li><strong>Starter categories</strong>, editable by admins</li>
+              <li><strong>Event name</strong> (parade, sweater walk, tasting)</li>
+              <li><strong>Photobooth looks</strong>: spooky or festive; booth off by default for General</li>
+            </ul>
+          </div>
+          <div class="plan-card">
+            <h3>Data to store</h3>
+            <ul>
+              <li><strong>Site</strong>: company name, logo, brand color, admin PIN</li>
+              <li><strong>Contest</strong>: mode, title, dates, categories, settings, status</li>
+              <li><strong>Entry</strong>: name, dept, entry name, photo, approved</li>
+              <li><strong>Vote</strong>: voter name, device ID, network, category, entry, time</li>
+              <li><strong>Video</strong>: file or YouTube URL, caption, posted by</li>
+              <li><strong>Booth photo</strong>: original, AI version, look, name</li>
+            </ul>
+          </div>
+          <div class="plan-card">
+            <h3>Still to decide</h3>
+            <ul>
+              <li>Can people vote for their own entry?</li>
+              <li>Who can post videos?</li>
+              <li>Personal or company AI account, and a daily photo limit</li>
+              <li>Is sending employee photos to an AI service OK under company policy?</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="device" aria-label="Phone prototype">
+      <div class="phone" id="phone">
+        <div class="screen">
+          <div class="appbar">
+            <div class="brandrow"><div class="logo" id="logo" aria-label="Company logo"></div><div class="brand" id="brand"></div></div>
+            <span class="pill live" id="statusPill">Voting open</span>
+          </div>
+          <div class="body" id="screen"></div>
+          <div class="toast" id="toast" hidden></div>
+          <nav class="nav" id="nav" aria-label="Prototype navigation"></nav>
+        </div>
+      </div>
+      <div class="tablet" id="tablet" hidden><div class="kiosk" id="kiosk"></div></div>
+      <p class="mock-note" id="mockNote">Clickable prototype. Sample people and votes; nothing is saved.</p>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+  const DEPTS = ["Accounting", "IT", "HR", "Sales", "Marketing", "Warehouse", "Customer Service"];
+  const HUES = [[268,22],[18,32],[200,40],[340,30],[150,28],[42,40],[290,35],[10,25]];
+  const PEOPLE = [
+    ["Dana Reyes","Accounting"],["Marcus Tate","IT"],["Priya Shah","HR"],["Jo Kowalski","Sales"],
+    ["Luis Moreno","Warehouse"],["Aiko Watanabe","Marketing"],["Sam Okafor","Customer Service"],["Beth Lindqvist","Accounting"],
+  ];
+  // votes per category, in category order
+  const VOTES = [[14,22,9],[11,8,21],[19,4,21],[3,17,6],[12,2,6],[5,6,10],[1,9,3],[4,2,1]];
+
+  const MODES = {
+    halloween: {
+      label: "Halloween", title: "Costume Contest", sub: "Halloween 2026", noun: "costume", Noun: "Costume",
+      start: new Date(2026, 9, 27, 9, 0), end: new Date(2026, 9, 30, 15, 0),
+      cats: ["Scariest", "Funniest", "Most Creative"],
+      entries: ["Mothman", "Blue Screen of Death", "Sentient Spreadsheet", "Inflatable T-Rex", "Forklift Ghost", "Wednesday Addams", "Hold Music (Live)", "Tax Season Zombie"],
+      event: { name: "Costume parade", when: "Fri Oct 30, 12:30 PM · Main lobby" },
+      photo: "Take a photo in your costume", ph: "e.g. Haunted Printer",
+    },
+    holiday: {
+      label: "Holiday party", title: "Ugly Sweater Showdown", sub: "Holiday Party 2026", noun: "sweater", Noun: "Sweater",
+      start: new Date(2026, 11, 14, 9, 0), end: new Date(2026, 11, 18, 14, 0),
+      cats: ["Ugliest", "Most Festive", "Best DIY"],
+      entries: ["Tinsel Overload", "Light-Up Reindeer", "Grinch Knit", "Cat in a Santa Hat", "Gingerbread Tragedy", "Fair Isle Disaster", "Blinking Tree", "Hand-Knit Yeti"],
+      event: { name: "Sweater walk", when: "Fri Dec 18, 2:00 PM · Cafeteria" },
+      photo: "Take a photo in your sweater", ph: "e.g. Rudolph's Revenge",
+    },
+    general: {
+      label: "General", title: "Chili Cook-Off", sub: "Spring 2027", noun: "dish", Noun: "Dish",
+      start: new Date(2027, 1, 8, 9, 0), end: new Date(2027, 1, 12, 13, 0),
+      cats: ["Spiciest", "Best Flavor", "Most Original"],
+      entries: ["Ghost Pepper Gamble", "Smoked Brisket Chili", "Grandma's Three-Bean", "White Chicken Chili", "Green Chile Verde", "Vegan Black Bean", "Cincinnati Style", "Mild Mannered"],
+      event: { name: "Tasting table", when: "Thu Feb 12, 11:30 AM · Break room" },
+      photo: "Take a photo of your dish", ph: "e.g. Five-Alarm Turkey Chili",
+    },
+  };
+
+  const STYLES = {
+    halloween: [
+      { k: "Zombie", g: ["#24361F", "#7E9A4E"], prompt: "Turn this person into a friendly cartoon zombie with green skin and torn office clothes. Keep their face recognizable and the same pose. Spooky but fun, not gory." },
+      { k: "Vampire", g: ["#22070F", "#8C1C2E"], prompt: "Make this person a classic vampire with a high-collared cape, pale skin and a moonlit castle behind them. Keep their face recognizable and the same pose." },
+      { k: "Haunted portrait", g: ["#231C2C", "#6B5A3A"], prompt: "Paint this person as an old haunted oil portrait in an ornate gold frame, lit by candlelight with a faint ghostly glow. Keep their face recognizable." },
+    ],
+    holiday: [
+      { k: "Elf", g: ["#1F6B47", "#C0283A"], prompt: "Turn this person into one of Santa's elves with pointed ears, a green and red outfit and a toy workshop behind them. Keep their face recognizable and the same pose." },
+      { k: "Snow globe", g: ["#7FB0DA", "#DCEAF6"], prompt: "Place this person inside a snow globe with falling snow and a tiny snowy village. Keep their face recognizable." },
+      { k: "Ugly sweater", g: ["#A3202F", "#D9A21B"], prompt: "Dress this person in an over-the-top ugly Christmas sweater with reindeer and blinking lights, in a cozy living room with a tree. Keep their face recognizable and the same pose." },
+    ],
+    general: [
+      { k: "Cartoon", g: ["#0E5A61", "#3CC6D0"], prompt: "Redraw this person as a bright, friendly cartoon character. Keep their face recognizable and the same pose." },
+      { k: "Comic book", g: ["#1B2A6B", "#E2B100"], prompt: "Redraw this person as a comic book hero panel with bold ink lines and halftone dots. Keep their face recognizable." },
+      { k: "Retro poster", g: ["#7A3B1D", "#E39B4A"], prompt: "Turn this photo into a 1960s screen-printed poster with flat colors. Keep their face recognizable." },
+    ],
+  };
+  const BOOTH_VERB = { halloween: "Make it spooky", holiday: "Make it festive", general: "Make it fun" };
+  const SIL = '<svg viewBox="0 0 100 100" class="sil" aria-hidden="true"><circle cx="50" cy="40" r="16"/><path d="M16 100c0-21 15-35 34-35s34 14 34 35z"/></svg>';
+
+  const seedLog = () => [
+    { name: "Kim Nguyen", dev: "3B8E", net: "Floor 2 Wi-Fi", time: "9:02 AM", n: 3 },
+    { name: "Marcus Tate", dev: "91C4", net: "Floor 1 Wi-Fi", time: "9:10 AM", n: 3 },
+    { name: "Marcus Tate", dev: "E07A", net: "Cell network", time: "9:11 AM", n: 3 },
+    { name: "Rob", dev: "5D21", net: "Floor 1 Wi-Fi", time: "10:45 AM", n: 1, flag: "Only a first name" },
+    { name: "Tess Hall", dev: "C3F9", net: "Floor 2 Wi-Fi", time: "10:58 AM", n: 2 },
+    { name: "Jay Patel", dev: "77AB", net: "Guest Wi-Fi", time: "11:02 AM", n: 3, flag: "4 new devices on this network in 2 min" },
+  ];
+
+  let S = {}; // per-mode data
+  function loadMode(m) {
+    const M = MODES[m];
+    S = {
+      cats: [...M.cats],
+      players: PEOPLE.map(([name, dept], i) => ({ id: i + 1, name, dept, entry: M.entries[i], ok: true, v: Object.fromEntries(M.cats.map((c, k) => [c, VOTES[i][k]])) })),
+      pending: [],
+      videos: [
+        { title: M.event.name, by: "Events committee", src: "youtube.com/watch?v=…", kind: "YouTube" },
+        { title: "Warehouse team walk-on", by: "Luis Moreno", src: "IMG_4471.mov · 48 MB", kind: "Uploaded" },
+      ],
+      log: seedLog(),
+      myVotes: {},
+      nextId: 9,
+      boothOn: m !== "general",
+      styleIdx: 0,
+      prompts: Object.fromEntries(STYLES[m].map(x => [x.k, x.prompt])),
+      booth: [["Kim Nguyen", 0], ["Tess Hall", 1], ["Jay Patel", 2], ["Marcus Tate", 0], ["", 1], ["Aiko Watanabe", 2]].map(([name, style]) => ({ name, style })),
+    };
+  }
+
+  let state = { mode: "halloween", phase: "live", tab: "home", cat: null, dept: "All", voter: "", approval: false, showCounts: true, company: "Acme Co.", logo: null, brand: "#2563EB", useBrand: false, gtab: "photos", bs: { stage: "attract", style: null, n: 3, name: "", flash: false },
+    liveEnd: Date.now() + ((2 * 24 + 5) * 60 + 14) * 60000 + 9000 };
+  const DEVICE = "A7F3";
+  loadMode(state.mode);
+
+  const $ = s => document.querySelector(s);
+  const M = () => MODES[state.mode];
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const initials = n => n.split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+  const fmt = d => d.toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const total = p => S.cats.reduce((s, c) => s + (p.v[c] || 0), 0);
+  const live = () => S.players.filter(p => p.ok);
+  const byTotal = () => [...live()].sort((a, b) => total(b) - total(a));
+  const byCat = c => [...live()].sort((a, b) => (b.v[c] || 0) - (a.v[c] || 0));
+  const photoStyle = p => {
+    if (p.img) return `background-image:url(${p.img})`;
+    const [h, l] = HUES[p.id % HUES.length];
+    return `background:linear-gradient(160deg,hsl(${h} 55% ${l + 18}%),hsl(${(h + 40) % 360} 60% ${l}%))`;
+  };
+  const photo = (p, tag = "") => `<div class="photo" style="${photoStyle(p)}" role="img" aria-label="Photo of ${esc(p.name)}">${p.img ? "" : initials(p.name)}${tag ? `<span class="tag">${esc(tag)}</span>` : ""}</div>`;
+
+  const ICONS = {
+    home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>',
+    vote: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 11l3 3 7-7"/><rect x="3" y="3" width="18" height="18" rx="4"/></svg>',
+    join: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+    gallery: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="2"/><path d="M3 17l5-4 4 3 3-2 6 4"/></svg>',
+  };
+  const NAV = [["home", "Home"], ["vote", "Vote"], ["join", "Join"], ["gallery", "Gallery"]];
+  const PLAY = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+
+  const NOTES = () => ({
+    home: { t: "Home", lede: "What people land on after scanning the QR code: is voting open, how long is left, and who is winning.",
+      items: [`Overall top 3 is the total of each ${M().noun}'s votes across all categories.`, "Below it, the current leader in each category. A tie shows both names.", "Countdown switches between “Voting opens in” and “Voting closes in” from the admin's start and end times.", `The ${M().event.name.toLowerCase()} card links to the gallery's Videos tab.`],
+      dec: ["Overall = total of all category votes.", "Ties share a place (shown as T-1ST)."],
+      qs: ["Show live vote counts, or hide them until the end? (Admin setting in this mockup.)", "Put the home page on office TVs as a live leaderboard?"] },
+    vote: { t: "Vote", lede: "Voters type their name once, then pick one favorite in each category.",
+      items: ["The name is saved on the phone, so they only type it once.", "The phone gets a random device ID. Each device gets one vote per category.", "Voters can change a pick until voting closes.", "Department chips filter the grid in a large office."],
+      dec: ["One vote per device, no logins.", "Voter name required, kept in a list admins can check.", "One entry can win several categories."],
+      qs: ["Can people vote for their own entry?"] },
+    join: { t: "Join", lede: "Self sign-up. On a phone, the photo button opens the camera directly.",
+      items: [`Required: photo, name, department. ${M().Noun} name is optional.`, "With photo approval off (the default), entries appear right away.", "With it on, entries wait in the admin's queue first.", "Entry closes when voting closes."],
+      dec: ["Photo approval is a setting, off by default."],
+      qs: ["Allow group entries (one entry, several names)?", "Fixed department list (shown) or free text?", "Can entrants edit or delete their own entry?"] },
+    gallery: { t: "Gallery", lede: `Photos and videos in one place. Photos holds the photobooth pictures and every ${M().noun} entry. Videos holds the ${M().event.name.toLowerCase()} recordings.`,
+      items: ["Booth pictures appear here after the person taps Add to gallery.", "Upload a phone video (up to 300 MB) or paste a YouTube link.", "The server converts uploads to standard MP4 so they play on every phone. iPhone .mov files often need this.", "YouTube links show a thumbnail and open on YouTube."],
+      dec: ["Videos stored on our servers, or YouTube links.", "300 MB per video."],
+      qs: ["Who can post videos: anyone, or only admins?", "Can people vote on booth photos too, or are they just for fun?"] },
+    booth: { t: "Photobooth", lede: "A separate full-screen page for a tablet, or an office PC with a good webcam, set up in front of a plain wall.",
+      items: ["Tap I'm ready, get a 3-second countdown, and the photo is taken.", "Preview with Retake or Looks good.", `Pick an AI look: ${STYLES[state.mode].map(x => x.k).join(", ")}.`, "Our server sends the photo to the AI image service with that look's instructions. The restyled photo usually comes back in 15–30 seconds.", "Before and after side by side, then Add to gallery. A QR code lets them save it to their phone.", "Next person resets the booth."],
+      dec: ["On for Halloween and Holiday party, off by default for General.", "The AI key lives only on our server, never in the browser."],
+      qs: ["Employee photos go to an outside AI company. Check that's OK under company policy, and keep the notice on the booth screen.", "Personal API key or a company account? A company account keeps billing and data terms in the company's name.", "Daily photo limit to cap the AI cost?"] },
+    admin: { t: "Admin", lede: "A separate page for whoever runs the contests, opened with a secret link and PIN.",
+      items: ["Company branding: logo, company name, and an optional brand color that replaces the mode colors.", "Contests list: start a new contest, see which one is live, open past ones from the archive.", "Pick the mode, set the title, dates and categories.", "Photobooth: turn it on or off, edit the AI instructions for each look, and set a daily limit.", "Turn photo approval and live vote counts on or off.", "Voter list shows every voter's name, device and network, and flags likely duplicates.", "Void a suspicious vote with one tap.", "Manage: close voting early, reset votes, remove an entry, archive a contest, change the PIN.", "QR poster and results export."],
+      dec: ["No logins for voters or entrants.", "Admins get in with a secret link plus a PIN.", "Brand color set with a color picker."],
+      qs: ["Keep past contests archived so last year's winners stay viewable?"] },
+  });
+
+  function renderNotes() {
+    const all = NOTES();
+    $("#noteTabs").innerHTML = Object.entries(all).map(([k, n]) =>
+      `<button type="button" role="tab" aria-selected="${state.tab === k}" data-go="${k}">${n.t}</button>`).join("");
+    const n = all[state.tab];
+    $("#noteBody").innerHTML = `<h2>${n.t} screen</h2><p class="lede">${n.lede}</p>
+      <h3>What it does</h3><ul>${n.items.map(i => `<li>${esc(i)}</li>`).join("")}</ul>
+      <h3>Decided</h3><ul class="mark d">${n.dec.map(i => `<li><span>${esc(i)}</span></li>`).join("")}</ul>
+      <h3>Open questions</h3><ul class="mark q">${n.qs.map(i => `<li><span>${esc(i)}</span></li>`).join("")}</ul>`;
+  }
+
+  function renderChrome() {
+    $("#app").dataset.mode = state.mode;
+    $("#brand").innerHTML = `${esc(M().title)}<small>${esc(state.company)} · ${esc(M().sub)}</small>`;
+    $("#logo").innerHTML = logoHTML();
+    $("#nav").innerHTML = NAV.map(([k, l]) =>
+      `<button type="button" data-go="${k}" ${state.tab === k ? 'aria-current="page"' : ""}>${ICONS[k]}${l}</button>`).join("");
+    const pill = $("#statusPill");
+    pill.className = "pill " + { before: "soon", live: "live", closed: "done" }[state.phase];
+    pill.textContent = { before: "Opens " + M().start.toLocaleDateString("en-US", { month: "short", day: "numeric" }), live: "Voting open", closed: "Voting closed" }[state.phase];
+    document.querySelectorAll("#modeSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === state.mode));
+    document.querySelectorAll("#phaseSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.phase === state.phase));
+  }
+
+  const logoHTML = () => state.logo ? `<img src="${state.logo}" alt="${esc(state.company)} logo">` : esc(initials(state.company.replace(/\b(co|inc|llc)\.?$/i, "").trim() || "Co"));
+
+  const boothArt = (st, label) => `<div class="bart" style="background:linear-gradient(160deg,${st.g[0]},${st.g[1]})" role="img" aria-label="${esc(label)} photobooth picture">${SIL}<span class="tag">${esc(label)}</span></div>`;
+
+  function applyBrand() {
+    const a = $("#app"), props = ["--accent", "--accent-soft", "--accent-fg", "--vid-b"];
+    if (!state.useBrand) { props.forEach(p => a.style.removeProperty(p)); return; }
+    const c = state.brand, n = parseInt(c.slice(1), 16), lum = (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255;
+    a.style.setProperty("--accent", c); a.style.setProperty("--vid-b", c);
+    a.style.setProperty("--accent-fg", lum > .6 ? "#1A1020" : "#FFFFFF");
+    a.style.setProperty("--accent-soft", `color-mix(in srgb, ${c} 18%, var(--surface))`);
+  }
+
+  let boothT;
+  function renderKiosk() {
+    const k = $("#kiosk"), b = state.bs, st = STYLES[state.mode], look = st[b.style];
+    const head = `<div class="khead"><div class="brandrow"><div class="logo">${logoHTML()}</div><div class="brand">${esc(M().title)}<small>Photobooth · ${esc(state.company)}</small></div></div></div>`;
+    if (!S.boothOn) { k.innerHTML = head + `<div class="koff"><b>The photobooth is off for this contest.</b><span>Turn it on in Admin, under Photobooth.</span><button type="button" class="kbtn ghost" data-go="admin">Open Admin</button></div>`; return; }
+    const wall = (chip, extra = "") => `<div class="cam wall">${SIL}${chip}${extra}</div>`;
+    const cam = {
+      attract: wall('<span class="kchip rec">Live camera</span>'),
+      countdown: wall('<span class="kchip rec">Live camera</span>', `<div class="count" aria-live="assertive">${b.n}</div>`),
+      preview: wall('<span class="kchip">Your photo</span>', b.flash ? '<div class="flash"></div>' : ""),
+      style: wall('<span class="kchip">Your photo</span>'),
+      working: wall('<span class="kchip">Your photo</span>', '<div class="shimmer"></div>'),
+      result: look && `<div class="split">${wall('<span class="kchip">Before</span>')}${boothArt(look, "After · " + look.k)}</div>`,
+      done: look && `<div class="split">${wall('<span class="kchip">Before</span>')}${boothArt(look, "After · " + look.k)}</div>`,
+    }[b.stage];
+    const side = {
+      attract: `<h2>Strike a pose!</h2><p>Stand on the tape mark and face the camera. You'll get a 3-second countdown.</p><button type="button" class="kbtn primary" data-booth="ready">I'm ready</button><p class="kfine">Your photo is restyled by an AI service and can be added to the contest gallery.</p>`,
+      countdown: `<h2>Get ready…</h2><p>Look at the camera and hold still.</p>`,
+      preview: `<h2>How's that?</h2><p>Keep it or take another.</p><div class="kacts"><button type="button" class="kbtn ghost" data-booth="retake">Retake</button><button type="button" class="kbtn primary" data-booth="keep">Looks good</button></div>`,
+      style: `<h2>Pick your look</h2><div class="kstyles">${st.map((x, i) => `<button type="button" class="kstyle" data-style="${i}" aria-pressed="${b.style === i}"><span class="sw" style="background:linear-gradient(160deg,${x.g[0]},${x.g[1]})"></span>${esc(x.k)}</button>`).join("")}</div>
+        <div class="field"><label for="kName">Your name (optional)</label><input id="kName" value="${esc(b.name)}" placeholder="Shown under your photo"></div>
+        <button type="button" class="kbtn primary" data-booth="go" ${b.style == null ? "disabled" : ""}>${BOOTH_VERB[state.mode]}</button><button type="button" class="kbtn link" data-booth="retake">Retake photo</button>`,
+      working: `<h2>Working on it…</h2><p>Turning you into: <b>${esc(look?.k)}</b>. This takes about 15–30 seconds.</p><div class="spin" role="status" aria-label="Working"></div>`,
+      result: `<h2>Ta-da!</h2><p>Here's you as <b>${esc(look?.k)}</b>.</p><div class="kacts col"><button type="button" class="kbtn primary" data-booth="save">Add to gallery</button><button type="button" class="kbtn ghost" data-booth="restyle">Try another look</button><button type="button" class="kbtn link" data-booth="reset">Start over</button></div>`,
+      done: `<h2>You're in the gallery!</h2><div class="kqr"><canvas id="kqr" width="29" height="29" aria-label="Sample QR code"></canvas><span>Scan to save your photo to your phone.</span></div><button type="button" class="kbtn primary" data-booth="reset">Next person</button>`,
+    }[b.stage];
+    k.innerHTML = head + `<div class="kbody"><div class="camwrap">${cam}</div><div class="kside">${side}</div></div>`;
+    b.flash = false;
+    if (b.stage === "done") drawQR("kqr");
+  }
+
+  function boothAction(a) {
+    const b = state.bs; clearTimeout(boothT); clearInterval(boothT);
+    if (a === "ready" || a === "retake") {
+      b.stage = "countdown"; b.n = 3; renderKiosk();
+      boothT = setInterval(() => { b.n--; if (b.n > 0) { renderKiosk(); return; } clearInterval(boothT); b.stage = "preview"; b.flash = true; renderKiosk(); }, 1000);
+    }
+    if (a === "keep" || a === "restyle") { b.stage = "style"; renderKiosk(); }
+    if (a === "go") { b.stage = "working"; renderKiosk(); boothT = setTimeout(() => { b.stage = "result"; renderKiosk(); }, 2400); }
+    if (a === "save") { S.booth.unshift({ name: b.name, style: b.style }); b.stage = "done"; renderKiosk(); toast("Added to the gallery"); }
+    if (a === "reset") { Object.assign(b, { stage: "attract", style: null, name: "", n: 3 }); renderKiosk(); }
+  }
+
+  function digitsHTML() {
+    const target = state.phase === "before" ? M().start.getTime() : state.liveEnd;
+    const ms = Math.max(0, target - Date.now());
+    const d = Math.floor(ms / 864e5), h = Math.floor(ms / 36e5) % 24, m = Math.floor(ms / 6e4) % 60, s = Math.floor(ms / 1e3) % 60;
+    const p = n => String(n).padStart(2, "0");
+    return `<div><b>${d}</b><span>days</span></div><div><b>${p(h)}</b><span>hrs</span></div><div><b>${p(m)}</b><span>min</span></div><div><b>${p(s)}</b><span>sec</span></div>`;
+  }
+  function clockHTML() {
+    if (state.phase === "closed") return `<div class="clock"><div class="k">Final results</div>
+      <div class="digits"><div><b>${S.log.length + 48}</b><span>voters</span></div><div><b>${live().length}</b><span>${M().noun}s</span></div><div><b>${S.cats.length}</b><span>categories</span></div></div>
+      <div class="window"><span>Voting ended <strong>${fmt(M().end)}</strong></span></div></div>`;
+    return `<div class="clock"><div class="k">${state.phase === "before" ? "Voting opens in" : "Voting closes in"}</div>
+      <div class="digits" id="digits">${digitsHTML()}</div>
+      <div class="window"><span>Starts <strong>${fmt(M().start)}</strong></span><span>Ends <strong>${fmt(M().end)}</strong></span></div></div>`;
+  }
+
+  const showVotes = () => state.showCounts || state.phase === "closed";
+
+  const screens = {
+    home() {
+      const before = state.phase === "before";
+      const [a, b, c] = byTotal();
+      const placeLabel = p => { const t = total(p), place = 1 + live().filter(q => total(q) > t).length, tie = live().filter(q => total(q) === t).length > 1;
+        return (tie ? "T-" : "") + (["1ST", "2ND", "3RD"][place - 1] || place + "TH"); };
+      const pod = (p, place, cls) => `<div class="pod ${cls}">${photo(p)}<div class="medal">${place}</div><div class="nm">${esc(p.name)}</div><div class="cs">${esc(p.entry)}</div>${showVotes() ? `<div class="vt">${total(p)} votes</div>` : ""}</div>`;
+      const leaders = S.cats.map(cat => {
+        const ranked = byCat(cat), top = ranked[0], score = top.v[cat] || 0, tied = ranked.filter(q => (q.v[cat] || 0) === score);
+        const names = tied.length > 1 ? tied.map(q => q.name).join(" & ") : top.name;
+        return `<button type="button" class="leader" data-go="vote" data-cat="${esc(cat)}">${photo(top)}<div><div class="c">${esc(cat)}${tied.length > 1 ? " · Tie" : ""}</div><b>${esc(names)}</b><span class="hint">${esc(tied.length > 1 ? tied.length + " entries tied" : top.entry)}</span></div>${showVotes() ? `<span class="v">${score}</span>` : ""}</button>`; }).join("");
+      return `${clockHTML()}
+        ${before ? `<div class="banner"><b>${live().length} ${M().noun}s entered so far.</b> Leaderboards appear when voting opens.</div>` : `
+        <div class="sec-h"><h3>${state.phase === "closed" ? "Overall winners" : "Overall top 3"}</h3><button type="button" data-go="vote">See all</button></div>
+        <div class="podium">${pod(b, placeLabel(b), "second")}${pod(a, placeLabel(a), "first")}${pod(c, placeLabel(c), "third")}</div>
+        <div class="sec-h"><h3>${state.phase === "closed" ? "Category winners" : "Leading each category"}</h3></div>
+        <div class="leaders">${leaders}</div>`}
+        <div class="cta-row">
+          <button type="button" class="btn primary" data-go="vote" ${state.phase !== "live" ? "disabled" : ""}>Vote now</button>
+          <button type="button" class="btn ghost" data-go="join" ${state.phase === "closed" ? "disabled" : ""}>Enter a ${M().noun}</button>
+        </div>
+        <button type="button" class="event-teaser" data-go="gallery" data-gtab="videos"><div class="vid">${PLAY}</div><div><b>${esc(M().event.name)}</b><span>${esc(M().event.when)}</span></div></button>`;
+    },
+    vote() {
+      if (!state.cat || !S.cats.includes(state.cat)) state.cat = S.cats[0];
+      const can = state.phase === "live";
+      const list = byCat(state.cat).filter(p => state.dept === "All" || p.dept === state.dept);
+      const done = S.cats.filter(c => S.myVotes[c]).length;
+      const gate = !can ? `<div class="banner">${state.phase === "before" ? `Voting opens <b>${fmt(M().start)}</b>. Browse the ${M().noun}s in the meantime.` : "Voting has closed. Thanks for voting!"}</div>`
+        : !state.voter ? `<form class="namegate" id="nameGate" novalidate><b>Enter your name to vote</b><p>So organizers can spot duplicate votes. Your name isn't shown publicly.</p>
+            <div class="r"><input id="voterIn" autocomplete="name" placeholder="First and last name" aria-label="Your name"><button class="btn primary small" type="submit">Start</button></div>
+            <div class="err" id="gateErr" hidden></div></form>`
+        : `<div class="who"><span>Voting as <b>${esc(state.voter)}</b> · ${done} of ${S.cats.length} picked</span><span class="dev">Device ${DEVICE}</span></div>`;
+      return `${gate}
+        <div class="cats" role="group" aria-label="Category">${S.cats.map(c => `<button type="button" data-cat="${esc(c)}" aria-pressed="${state.cat === c}">${S.myVotes[c] ? '<span class="done">✓</span>' : ""}${esc(c)}</button>`).join("")}</div>
+        <div class="filters" role="group" aria-label="Filter by department">${["All", ...DEPTS].map(d => `<button type="button" data-dept="${d}" aria-pressed="${state.dept === d}">${d}</button>`).join("")}</div>
+        <div class="grid">${list.map(p => { const mine = S.myVotes[state.cat] === p.id; return `<div class="card ${mine ? "mine" : ""}">${photo(p, p.dept)}
+          <div class="meta"><div><div class="nm">${esc(p.name)}</div><div class="cs">${esc(p.entry)}</div></div>
+          <button type="button" class="vote" data-vote="${p.id}" ${can ? "" : "disabled"}>${mine ? "✓ Your " + esc(state.cat.toLowerCase()) + " pick" : "Vote " + esc(state.cat.toLowerCase())}</button></div></div>`; }).join("") || `<p class="hint">No ${M().noun}s from ${esc(state.dept)} yet.</p>`}</div>`;
+    },
+    join() {
+      if (state.phase === "closed") return `<div class="banner">Entries are closed for this contest.</div>`;
+      return `<div class="sec-h"><h3>Enter a ${M().noun}</h3></div>
+        <form id="joinForm" novalidate style="display:grid;gap:14px">
+          <label class="shot" id="shot" for="photoIn">
+            <input class="sr" type="file" id="photoIn" accept="image/*" capture="environment">
+            <div><svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+            <div class="t">${esc(M().photo)}</div><div class="s">or choose one from your phone</div></div>
+          </label>
+          <div class="field"><label for="nameIn">Your name</label><input id="nameIn" autocomplete="name" placeholder="First and last name"></div>
+          <div class="field"><label for="deptIn">Department</label><select id="deptIn"><option value="">Choose your department</option>${DEPTS.map(d => `<option>${d}</option>`).join("")}</select></div>
+          <div class="field"><label for="costIn">${M().Noun} name <span class="hint">(optional)</span></label><input id="costIn" placeholder="${esc(M().ph)}"></div>
+          <label class="check"><input type="checkbox" id="okIn" checked> I'm OK with my photo being shown on the office TV screens.</label>
+          <div class="err" id="joinErr" hidden></div>
+          <button class="btn primary block" type="submit">Submit entry</button>
+          <p class="hint" style="margin:0;text-align:center">${state.approval ? "An organizer approves entries before they appear." : "Your entry appears in the gallery right away."}</p>
+        </form>`;
+    },
+    gallery() {
+      const seg = `<div class="seg gseg" role="group" aria-label="Gallery section"><button type="button" data-gtab="photos" aria-pressed="${state.gtab === "photos"}">Photos</button><button type="button" data-gtab="videos" aria-pressed="${state.gtab === "videos"}">Videos</button></div>`;
+      if (state.gtab === "photos") {
+        const st = STYLES[state.mode];
+        const booth = S.boothOn ? `<div class="sec-h"><h3>Photobooth</h3><button type="button" data-go="booth">Open booth</button></div>
+          <div class="grid3">${S.booth.map(b => `<figure class="bfig">${boothArt(st[b.style], st[b.style].k)}<figcaption>${esc(b.name || "Anonymous")}</figcaption></figure>`).join("")}</div>` : "";
+        return `${seg}${booth}<div class="sec-h"><h3>${M().Noun} entries</h3><span class="hint">${live().length}</span></div>
+          <div class="grid3">${live().map(p => `<figure class="bfig">${photo(p)}<figcaption>${esc(p.name)}</figcaption></figure>`).join("")}</div>`;
+      }
+      return `${seg}<div class="sec-h"><h3>${esc(M().event.name)}</h3></div>
+        <div class="banner"><b>${esc(M().event.when)}</b><br>Recordings will be posted here.</div>
+        ${S.videos.map(v => `<div class="vcard"><div class="vid">${PLAY}</div><div class="meta"><span class="src">${esc(v.kind)}</span><b>${esc(v.title)}</b><span>Posted by ${esc(v.by)} · ${esc(v.src)}</span></div></div>`).join("")}
+        <form id="vidForm" class="panel" novalidate>
+          <b>Add a video</b>
+          <label class="btn ghost block" for="vidIn" style="text-align:center"><span id="vidLbl">Upload a video from your phone</span><input class="sr" type="file" id="vidIn" accept="video/*"></label>
+          <span class="hint" style="text-align:center">MP4 or MOV, up to 300 MB</span>
+          <div class="or">or</div>
+          <div class="field"><label for="ytIn">YouTube link</label><input id="ytIn" inputmode="url" placeholder="https://youtu.be/…"></div>
+          <div class="field"><label for="capIn">Caption</label><input id="capIn" placeholder="e.g. Sales department walk-on"></div>
+          <div class="err" id="vidErr" hidden></div>
+          <button class="btn primary block" type="submit">Post video</button>
+        </form>`;
+    },
+    admin() {
+      const names = {}; S.log.forEach(r => { if (!r.void) (names[r.name.toLowerCase()] ??= new Set()).add(r.dev); });
+      const flagged = S.log.filter(r => r.flag || names[r.name.toLowerCase()]?.size > 1).length;
+      return `<div class="sec-h"><h3>Admin</h3><span class="hint">Secret link + PIN</span></div>
+        <div class="panel">
+          <b>Company branding</b>
+          <div class="logoedit"><div class="logo">${logoHTML()}</div>
+            <div style="display:grid;gap:6px;min-width:0"><label class="btn ghost small" for="logoIn" style="text-align:center">${state.logo ? "Replace logo" : "Upload logo"}<input class="sr" type="file" id="logoIn" accept="image/png,image/svg+xml,image/jpeg"></label>
+            <span class="hint">PNG or SVG. Shown in the header of every page and on the QR poster.</span></div></div>
+          <div class="field"><label for="coIn">Company name</label><input id="coIn" value="${esc(state.company)}"></div>
+          <div class="colorrow"><input type="color" id="brandIn" value="${state.brand}" aria-label="Brand color"><div style="display:grid;min-width:0"><b style="font-size:13px">Brand color</b><span class="hint" id="brandHex" style="font-family:var(--font-mono)">${state.brand.toUpperCase()}</span></div></div>
+          <label class="toggle"><span>Use brand color instead of mode colors<small>Off: each mode uses its own colors</small></span><input type="checkbox" class="switch" id="useBrandIn" ${state.useBrand ? "checked" : ""}></label>
+        </div>
+        <div class="panel">
+          <div class="sec-h"><b>Contests</b><button type="button" data-toast="Opens a blank contest: pick a mode, title, dates and categories">+ New contest</button></div>
+          <div class="contests">
+            <div class="crow"><span>${esc(M().title)}<small>${esc(M().label)} · open now</small></span><span class="st ${state.phase === "live" ? "on" : ""}">${{ before: "Scheduled", live: "Live", closed: "Closed" }[state.phase]}</span></div>
+            <div class="crow"><span>Ugly Sweater Showdown 2025<small>Holiday party · 61 voters</small></span><span class="st">Archived</span></div>
+            <div class="crow"><span>Summer Chili Cook-Off 2025<small>General · 38 voters</small></span><span class="st">Archived</span></div>
+          </div>
+        </div>
+        <div class="panel">
+          <b>This contest</b>
+          <div class="field"><label for="modeIn">Contest type</label><select id="modeIn">${Object.entries(MODES).map(([k, m]) => `<option value="${k}" ${k === state.mode ? "selected" : ""}>${m.label}</option>`).join("")}</select></div>
+          <div class="field"><label for="titleIn">Title</label><input id="titleIn" value="${esc(M().title)}"></div>
+          <div class="row2"><div class="field"><label for="sd">Voting opens</label><input id="sd" type="datetime-local" value="${M().start.toISOString().slice(0, 16)}"></div>
+            <div class="field"><label for="ed">Voting closes</label><input id="ed" type="datetime-local" value="${M().end.toISOString().slice(0, 16)}"></div></div>
+        </div>
+        <div class="panel">
+          <b>Categories</b>
+          <div class="chips"><span class="chip fixed">Overall (automatic)</span>${S.cats.map(c => `<span class="chip">${esc(c)}<button type="button" data-delcat="${esc(c)}" aria-label="Remove ${esc(c)}">×</button></span>`).join("")}</div>
+          <form class="addcat" id="catForm" novalidate><input id="catIn" placeholder="Add a category" aria-label="New category name"><button class="btn ghost small" type="submit">Add</button></form>
+        </div>
+        <div class="panel">
+          <b>Settings</b>
+          <label class="toggle"><span>Approve photos before they appear<small>Off: entries show up right away</small></span><input type="checkbox" class="switch" id="apprIn" ${state.approval ? "checked" : ""}></label>
+          <label class="toggle"><span>Show live vote counts<small>Off: counts hidden until voting closes</small></span><input type="checkbox" class="switch" id="countIn" ${state.showCounts ? "checked" : ""}></label>
+          <label class="toggle"><span>One vote per device<small>Always on</small></span><input type="checkbox" class="switch" checked disabled></label>
+        </div>
+        <div class="panel">
+          <div class="sec-h"><b>Photobooth</b><button type="button" data-go="booth">Open photobooth</button></div>
+          <label class="toggle"><span>Photobooth for this contest<small>${state.mode === "general" ? "Off by default in General mode" : "On by default in this mode"}</small></span><input type="checkbox" class="switch" id="boothIn" ${S.boothOn ? "checked" : ""}></label>
+          ${S.boothOn ? (() => { const st = STYLES[state.mode], cur = st[S.styleIdx]; return `
+          <div class="field"><label for="styleSel">AI looks</label><select id="styleSel">${st.map((x, i) => `<option value="${i}" ${i === S.styleIdx ? "selected" : ""}>${esc(x.k)}</option>`).join("")}</select></div>
+          <div class="field"><label for="promptIn">Instructions sent to the AI for “${esc(cur.k)}”</label><textarea id="promptIn" rows="4">${esc(S.prompts[cur.k])}</textarea></div>
+          <div class="row2"><div class="field"><label for="limitIn">Daily photo limit</label><input id="limitIn" type="number" value="200" min="0"></div><div class="field"><label for="aiIn">AI service</label><input id="aiIn" value="OpenAI · key on server" disabled></div></div>`; })() : ""}
+        </div>
+        ${state.approval ? `<div class="panel"><b>Waiting for approval (${S.pending.length})</b><div class="queue">${S.pending.map(p => `<div class="qitem">${photo(p)}<div><b>${esc(p.name)}</b><span>${esc(p.dept)} · ${esc(p.entry || "No name")}</span></div>
+          <div class="acts"><button type="button" class="yes" data-approve="${p.id}">Approve</button><button type="button" data-reject="${p.id}">Reject</button></div></div>`).join("") || `<p class="hint" style="margin:0">Nothing waiting. Submit an entry on the Join tab to see it here.</p>`}</div></div>` : ""}
+        <div class="panel">
+          <div class="sec-h"><b>Voters (${S.log.length})</b><span class="hint" style="color:var(--warn);font-weight:700">${flagged} flagged</span></div>
+          <div class="log">${S.log.map((r, i) => { const dup = names[r.name.toLowerCase()]?.size > 1 && !r.void; const flag = r.flag || (dup ? "Same name on 2 devices" : "");
+            return `<div class="lrow ${r.void ? "void" : ""}"><b>${esc(r.name)}</b><button type="button" class="vbtn" data-void="${i}">${r.void ? "Restore" : "Void"}</button>
+              <span class="m">Device ${r.dev} · ${esc(r.net)} · ${r.time} · ${r.n} of ${S.cats.length}</span>${flag && !r.void ? `<span class="flag">⚑ ${esc(flag)}</span>` : ""}</div>`; }).join("")}</div>
+        </div>
+        <div class="panel">
+          <div class="qrbox"><canvas id="qr" width="29" height="29" aria-label="Sample QR code"></canvas>
+            <div style="display:grid;gap:6px;min-width:0"><b>Scan to vote</b><span class="url">contests.acme.co/${state.mode}</span>
+            <span class="poster-logo">Poster includes your logo and the contest title</span>
+            <button type="button" class="btn ghost small" data-toast="The QR poster PDF would download here">Download QR poster</button></div></div>
+        </div>
+        <div class="panel">
+          <b>Manage</b>
+          <div class="manage">
+            <button type="button" class="btn ghost small" data-toast="Voting would close now instead of at the scheduled time">Close voting now</button>
+            <button type="button" class="btn ghost small" data-toast="Asks to confirm, then clears every vote in this contest">Reset votes</button>
+            <button type="button" class="btn ghost small" data-toast="Removes an entry from the gallery after you confirm">Remove an entry</button>
+            <button type="button" class="btn ghost small" data-toast="Moves this contest to the archive">Archive contest</button>
+          </div>
+          <div class="field"><label for="pinIn">Admin PIN</label><input id="pinIn" type="password" value="4821" inputmode="numeric" aria-describedby="pinHint"><span class="hint" id="pinHint">Anyone with the admin link and this PIN can manage contests.</span></div>
+        </div>
+        <button type="button" class="btn ghost block" data-toast="Results and voter list CSV would download here">Export results + voter list</button>`;
+    },
+  };
+
+  function render(keepScroll) {
+    const sc = $("#screen"), top = sc.scrollTop;
+    const booth = state.tab === "booth";
+    $("#layout").classList.toggle("booth", booth); $("#phone").hidden = booth; $("#tablet").hidden = !booth;
+    $("#mockNote").textContent = booth ? "Photobooth prototype. The camera and AI are simulated here; the real page uses the tablet or webcam." : "Clickable prototype. Sample people and votes; nothing is saved.";
+    renderNotes(); renderChrome(); applyBrand();
+    if (booth) { renderKiosk(); return; }
+    clearTimeout(boothT); clearInterval(boothT); if (["countdown", "working"].includes(state.bs.stage)) state.bs.stage = "attract";
+    sc.innerHTML = screens[state.tab]();
+    sc.scrollTop = keepScroll ? top : 0;
+    if (state.tab === "admin") drawQR();
+  }
+
+  let toastT;
+  function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600); }
+
+  function drawQR(id = "qr") {
+    const c = document.getElementById(id); if (!c) return; const x = c.getContext("2d"), N = 29;
+    x.fillStyle = "#fff"; x.fillRect(0, 0, N, N); x.fillStyle = "#1a1020";
+    let seed = 7 + state.mode.length; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (rnd() > .52) x.fillRect(i, j, 1, 1);
+    [[0, 0], [N - 7, 0], [0, N - 7]].forEach(([a, b]) => {
+      x.fillStyle = "#fff"; x.fillRect(a - (a ? 1 : 0), b - (b ? 1 : 0), 8, 8);
+      x.fillStyle = "#1a1020"; x.fillRect(a, b, 7, 7); x.fillStyle = "#fff"; x.fillRect(a + 1, b + 1, 5, 5); x.fillStyle = "#1a1020"; x.fillRect(a + 2, b + 2, 3, 3);
+    });
+  }
+
+  function setMode(m) { if (m === state.mode) return; state.mode = m; state.cat = null; state.dept = "All"; loadMode(m); Object.assign(state.bs, { stage: "attract", style: null, name: "" }); render(state.tab === "admin"); toast(`Switched to ${MODES[m].label} mode`); }
+
+  function myLogRow() {
+    let r = S.log.find(r => r.dev === DEVICE);
+    if (!r) { r = { name: state.voter, dev: DEVICE, net: "Floor 2 Wi-Fi", time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }), n: 0 }; S.log.push(r); }
+    r.n = S.cats.filter(c => S.myVotes[c]).length;
+  }
+
+  document.addEventListener("click", e => {
+    const t = e.target.closest("button"); if (!t || t.type === "submit") return;
+    if (t.dataset.go) { if (t.dataset.cat) state.cat = t.dataset.cat; if (t.dataset.gtab) state.gtab = t.dataset.gtab; state.tab = t.dataset.go; render(); return; }
+    if (t.dataset.gtab) { state.gtab = t.dataset.gtab; render(); return; }
+    if (t.dataset.booth) { boothAction(t.dataset.booth); return; }
+    if (t.dataset.style) { state.bs.style = +t.dataset.style; const nm = $("#kName"); if (nm) state.bs.name = nm.value; renderKiosk(); return; }
+    if (t.dataset.mode) { setMode(t.dataset.mode); return; }
+    if (t.dataset.phase) { state.phase = t.dataset.phase; render(); return; }
+    if (t.dataset.cat) { state.cat = t.dataset.cat; render(true); return; }
+    if (t.dataset.dept) { state.dept = t.dataset.dept; render(true); return; }
+    if (t.dataset.vote) {
+      if (!state.voter) {
+        const g = $("#nameGate"); $("#voterIn").focus(); g.classList.remove("shake"); void g.offsetWidth; g.classList.add("shake");
+        const er = $("#gateErr"); er.textContent = "Enter your name first, then vote."; er.hidden = false; return;
+      }
+      const id = +t.dataset.vote, c = state.cat; if (S.myVotes[c] === id) return;
+      const old = S.players.find(p => p.id === S.myVotes[c]); if (old) old.v[c]--;
+      const p = S.players.find(p => p.id === id); p.v[c] = (p.v[c] || 0) + 1; S.myVotes[c] = id;
+      myLogRow();
+      const next = S.cats.find(x => !S.myVotes[x]);
+      render(true); toast(`${c}: vote saved for ${p.name}` + (next ? `. Next: ${next}` : ". All categories done!"));
+      return;
+    }
+    if (t.dataset.approve || t.dataset.reject) {
+      const id = +(t.dataset.approve || t.dataset.reject); const p = S.pending.find(p => p.id === id);
+      S.pending = S.pending.filter(q => q.id !== id);
+      if (t.dataset.approve) { p.ok = true; S.players.push(p); toast(`${p.name} is now in the gallery`); } else toast(`${p.name}'s entry was rejected`);
+      render(true); return;
+    }
+    if (t.dataset.void) { const r = S.log[+t.dataset.void]; r.void = !r.void; render(true); toast(r.void ? `${r.name}'s votes no longer count` : `${r.name}'s votes count again`); return; }
+    if (t.dataset.delcat) {
+      if (S.cats.length <= 1) { toast("Keep at least one category"); return; }
+      S.cats = S.cats.filter(c => c !== t.dataset.delcat); delete S.myVotes[t.dataset.delcat]; render(true); return;
+    }
+    if (t.dataset.toast) toast(t.dataset.toast);
+  });
+
+  document.addEventListener("change", e => {
+    const id = e.target.id;
+    if (id === "photoIn" && e.target.files[0]) {
+      const r = new FileReader(); r.onload = () => { const s = $("#shot"); s.style.backgroundImage = `url(${r.result})`; s.classList.add("has"); s.dataset.img = r.result; };
+      r.readAsDataURL(e.target.files[0]);
+    }
+    if (id === "vidIn" && e.target.files[0]) $("#vidLbl").textContent = e.target.files[0].name;
+    if (id === "modeIn") setMode(e.target.value);
+    if (id === "logoIn" && e.target.files[0]) { const r = new FileReader(); r.onload = () => { state.logo = r.result; render(true); toast("Logo updated on every page"); }; r.readAsDataURL(e.target.files[0]); }
+    if (id === "useBrandIn") { state.useBrand = e.target.checked; applyBrand(); }
+    if (id === "boothIn") { S.boothOn = e.target.checked; render(true); toast(S.boothOn ? "Photobooth is on" : "Photobooth is off"); }
+    if (id === "styleSel") { S.styleIdx = +e.target.value; render(true); }
+    if (id === "coIn" && e.target.value.trim()) { state.company = e.target.value.trim(); render(true); }
+    if (id === "apprIn") { state.approval = e.target.checked; render(true); toast(state.approval ? "New entries now wait for approval" : "New entries now appear right away"); }
+    if (id === "countIn") { state.showCounts = e.target.checked; toast(state.showCounts ? "Vote counts are visible" : "Vote counts hidden until voting closes"); }
+    if (id === "titleIn" && e.target.value.trim()) { M().title = e.target.value.trim(); renderChrome(); }
+  });
+
+  document.addEventListener("input", e => {
+    const id = e.target.id;
+    if (id === "brandIn") { state.brand = e.target.value; state.useBrand = true; $("#useBrandIn").checked = true; $("#brandHex").textContent = state.brand.toUpperCase(); applyBrand(); }
+    if (id === "promptIn") S.prompts[STYLES[state.mode][S.styleIdx].k] = e.target.value;
+    if (id === "kName") state.bs.name = e.target.value;
+  });
+
+  document.addEventListener("submit", e => {
+    e.preventDefault();
+    const f = e.target.id;
+    if (f === "nameGate") {
+      const v = $("#voterIn").value.trim(), er = $("#gateErr");
+      if (v.length < 2) { er.textContent = "Enter your name so organizers can match your vote to you."; er.hidden = false; return; }
+      state.voter = v; render(true); toast(`Thanks, ${v.split(" ")[0]}. Now pick a ${state.cat.toLowerCase()} ${M().noun}.`);
+    }
+    if (f === "joinForm") {
+      const name = $("#nameIn").value.trim(), dept = $("#deptIn").value, img = $("#shot").dataset.img, err = $("#joinErr");
+      const miss = [!img && "a photo", !name && "your name", !dept && "your department"].filter(Boolean);
+      if (miss.length) { err.textContent = "Add " + miss.join(", ") + " to submit."; err.hidden = false; return; }
+      const p = { id: S.nextId++, name, dept, entry: $("#costIn").value.trim() || `${name.split(" ")[0]}'s ${M().noun}`, ok: !state.approval, img, v: {} };
+      if (state.approval) { S.pending.push(p); state.tab = "home"; render(); toast("Entry sent. It appears once an organizer approves it."); }
+      else { S.players.push(p); state.tab = "vote"; state.dept = "All"; render(); toast("You're in! Your entry is in the gallery."); }
+    }
+    if (f === "vidForm") {
+      const yt = $("#ytIn").value.trim(), file = $("#vidIn").files[0], err = $("#vidErr");
+      if (!yt && !file) { err.textContent = "Choose a video file or paste a YouTube link."; err.hidden = false; return; }
+      if (file && file.size > 300 * 1048576) { err.textContent = `That video is ${Math.round(file.size / 1048576)} MB. The limit is 300 MB. Trim it or post it to YouTube instead.`; err.hidden = false; return; }
+      if (yt && !/youtu\.?be/.test(yt)) { err.textContent = "That isn't a YouTube link. It should start with youtube.com or youtu.be."; err.hidden = false; return; }
+      S.videos.push({ title: $("#capIn").value.trim() || "Video", by: state.voter || "You", src: file ? `${file.name} · ${Math.max(1, Math.round(file.size / 1048576))} MB` : yt, kind: file ? "Uploaded" : "YouTube" });
+      render(); toast(file ? "Video uploaded" : "Video posted");
+    }
+    if (f === "catForm") {
+      const v = $("#catIn").value.trim();
+      if (!v) return;
+      if (S.cats.some(c => c.toLowerCase() === v.toLowerCase())) { toast(`“${v}” is already a category`); return; }
+      S.cats.push(v); render(true); toast(`Added “${v}”`);
+    }
+  });
+
+  setInterval(() => { const d = document.getElementById("digits"); if (d && state.phase !== "closed") d.innerHTML = digitsHTML(); }, 1000);
+
+  render();
+})();
+</script>
+
+</html>

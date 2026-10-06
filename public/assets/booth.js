@@ -252,7 +252,8 @@
     countdown: () => isGroup() ? `<h2>Squeeze in!</h2><p>Make sure everyone's face is in the frame.</p>` : `<h2>Get ready…</h2><p>Look at the camera and hold still.</p>`,
     preview: () => `
       <h2>How's that?</h2><p>Keep it or take another.</p>
-      <div class="kacts"><button type="button" class="kbtn ghost" data-act="retake">Retake</button><button type="button" class="kbtn primary" data-act="keep" data-autofocus>Looks good</button></div>`,
+      <div class="kacts"><button type="button" class="kbtn ghost" data-act="retake">Retake</button><button type="button" class="kbtn primary" data-act="keep" data-autofocus>Looks good</button></div>
+      <button type="button" class="kbtn link" data-act="reset">← Go back to switch between Just me and Group photo</button>`,
     style: () => `
       <h2>Pick your look</h2>
       <div class="kstyles">${cfg.styles.map((x, i) => `<button type="button" class="kstyle" data-style="${i}" aria-pressed="${st.style === i}"><span class="sw" style="background:linear-gradient(160deg,${esc(x.from)},${esc(x.to)})"></span>${esc(x.name)}</button>`).join('')}</div>

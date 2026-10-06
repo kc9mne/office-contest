@@ -1,0 +1,10 @@
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Never serve dotfiles (except .well-known, used for HTTPS certificates)
+    RewriteRule (^|/)\.(?!well-known/) - [F]
+    # Everything that isn't a real file goes to the app
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L,QSA]
+</IfModule>

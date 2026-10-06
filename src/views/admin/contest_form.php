@@ -133,3 +133,40 @@ $styleRows = array_pad(array_values($form['styles'] ?? []), BOOTH_MAX_STYLES, ['
     <a class="btn ghost" href="<?= e(admin_url()) ?>">Cancel</a>
   </div>
 </form>
+
+<?php if ($contest):
+  $phase = contest_phase($contest);
+  $voteCount = (int) (db_one('SELECT COUNT(*) AS n FROM votes WHERE contest_id = ?', [$contest['id']])['n'] ?? 0); ?>
+<section class="card">
+  <fieldset>
+    <legend>Results</legend>
+    <p class="hint" style="margin:0">Spreadsheets (CSV) that open in Excel or Google Sheets.</p>
+    <div class="row">
+      <a class="btn ghost small" href="<?= e(admin_url('contests/' . $contest['id'] . '/export/results.csv')) ?>">Download results</a>
+      <a class="btn ghost small" href="<?= e(admin_url('contests/' . $contest['id'] . '/export/voters.csv')) ?>">Download voter list</a>
+      <a class="btn ghost small" href="<?= e(admin_url('contests/' . $contest['id'] . '/export/votes.csv')) ?>">Download every vote</a>
+    </div>
+  </fieldset>
+</section>
+
+<section class="card danger-zone">
+  <fieldset>
+    <legend>Danger zone</legend>
+    <div class="spread">
+      <div><strong>Close voting now</strong><div class="hint">Ends voting immediately instead of at the scheduled time. Final results show on the home page.</div></div>
+      <form method="post" action="<?= e(admin_url('contests/' . $contest['id'] . '/close')) ?>" data-confirm="Close voting now? People won't be able to vote or enter any more.">
+        <?= csrf_field() ?><button class="btn ghost danger" type="submit" <?= $phase === 'closed' ? 'disabled' : '' ?>><?= $phase === 'closed' ? 'Voting is closed' : 'Close voting now' ?></button>
+      </form>
+    </div>
+    <form class="stack" method="post" action="<?= e(admin_url('contests/' . $contest['id'] . '/reset-votes')) ?>" style="gap:8px; border-top:1px solid var(--line); padding-top:14px">
+      <?= csrf_field() ?>
+      <div><strong>Reset all votes</strong><div class="hint">Deletes all <?= $voteCount ?> vote<?= $voteCount === 1 ? '' : 's' ?> and the voter list for this contest. Entries and photos stay. This can't be undone; download the results first if you need them.</div></div>
+      <div class="row">
+        <label class="sr-only" for="confirm_reset">Type RESET to confirm</label>
+        <input id="confirm_reset" name="confirm" placeholder="Type RESET" autocomplete="off" style="border:1px solid var(--line); border-radius:10px; padding:9px 12px; background:var(--surface); width:160px">
+        <button class="btn ghost danger" type="submit">Reset votes</button>
+      </div>
+    </form>
+  </fieldset>
+</section>
+<?php endif; ?>

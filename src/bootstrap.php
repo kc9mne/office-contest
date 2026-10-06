@@ -20,6 +20,7 @@ require APP_ROOT . '/src/secrets.php';
 require APP_ROOT . '/src/booth.php';
 require APP_ROOT . '/src/qr.php';
 require APP_ROOT . '/src/entries.php';
+require APP_ROOT . '/src/voters.php';
 
 $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
 session_name('officevote');

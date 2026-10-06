@@ -21,6 +21,12 @@ function admin_route(string $sub): void
         admin_gallery();
     } elseif ($sub === '/entries') {
         admin_entries();
+    } elseif ($sub === '/voters') {
+        admin_voters();
+    } elseif (preg_match('#^/contests/(\d+)/export/(results|voters|votes)\.csv$#', $sub, $m)) {
+        admin_export((int) $m[1], $m[2]);
+    } elseif (preg_match('#^/contests/(\d+)/(close|reset-votes)$#', $sub, $m) && is_post()) {
+        admin_contest_manage((int) $m[1], $m[2]);
     } elseif ($sub === '/contests/new') {
         admin_contest_form(null);
     } elseif (preg_match('#^/contests/(\d+)$#', $sub, $m)) {
@@ -132,6 +138,79 @@ function admin_contest_form(?int $id): void
         'form' => $form,
         'errors' => $errors,
     ], 'layout_admin');
+}
+
+function admin_voters(): void
+{
+    $contest = active_contest();
+    if (is_post() && $contest) {
+        $voter = db_one('SELECT * FROM voters WHERE id = ? AND contest_id = ?', [(int) ($_POST['voter_id'] ?? 0), $contest['id']]) ?? abort(404);
+        $void = ($_POST['action'] ?? '') === 'void';
+        db_run('UPDATE voters SET voided = ? WHERE id = ?', [$void ? 1 : 0, $voter['id']]);
+        flash($void ? "{$voter['name']}'s votes no longer count." : "{$voter['name']}'s votes count again.");
+        redirect(admin_base() . '/voters' . (isset($_GET['flagged']) ? '?flagged=1' : '') . '#voter-' . $voter['id']);
+    }
+    $voters = $contest ? contest_voters($contest) : [];
+    view('admin/voters', [
+        'title' => 'Voters',
+        'contest' => $contest,
+        'voters' => $voters,
+        'onlyFlagged' => isset($_GET['flagged']),
+    ], 'layout_admin');
+}
+
+function admin_export(int $id, string $what): void
+{
+    $contest = contest_find($id) ?? abort(404);
+    $slug = trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($contest['title'])), '-') ?: 'contest';
+    $yesNo = fn($b) => $b ? 'Yes' : 'No';
+
+    if ($what === 'results') {
+        $s = contest_standings($contest);
+        $rows = [];
+        $sections = array_merge([['name' => 'Overall', 'ranked' => $s['overall']]], array_map(fn($c) => ['name' => $c['category']['name'], 'ranked' => $c['ranked']], $s['categories']));
+        foreach ($sections as $sec) {
+            foreach ($sec['ranked'] as $r) {
+                $rows[] = [$sec['name'], $r['place'], $yesNo($r['tied']), $r['entry']['name'], $r['entry']['department'], $r['entry']['title'], $r['votes']];
+            }
+        }
+        send_csv("{$slug}-results.csv", ['Category', 'Place', 'Tied', 'Entry', 'Department', ucfirst(mode($contest['mode'])['noun']) . ' name', 'Votes'], $rows);
+    }
+    if ($what === 'voters') {
+        $rows = array_map(fn($v) => [
+            $v['name'], device_label($v['device_id']), $v['ip'], browser_label($v['user_agent']), (int) $v['picks'],
+            $v['first_vote'] ? utc_to_local($v['first_vote'], 'Y-m-d H:i') : '', $v['last_vote'] ? utc_to_local($v['last_vote'], 'Y-m-d H:i') : '',
+            $yesNo(!$v['voided']), implode('; ', array_map(fn($f) => $f[1], $v['flags'])),
+        ], contest_voters($contest));
+        send_csv("{$slug}-voters.csv", ['Name', 'Device', 'Network (IP)', 'Browser', 'Picks', 'First vote', 'Last vote', 'Counted', 'Flags'], $rows);
+    }
+    $rows = array_map(fn($r) => [
+        $r['voter'], device_label($r['device_id']), $yesNo(!$r['voided']), $r['category'], $r['entry'], $r['title'], utc_to_local($r['updated_at'], 'Y-m-d H:i'),
+    ], contest_vote_rows($id));
+    send_csv("{$slug}-votes.csv", ['Voter', 'Device', 'Counted', 'Category', 'Voted for', ucfirst(mode($contest['mode'])['noun']) . ' name', 'Time'], $rows);
+}
+
+function admin_contest_manage(int $id, string $action): void
+{
+    $contest = contest_find($id) ?? abort(404);
+    if ($action === 'close') {
+        if (contest_phase($contest) === 'closed') {
+            flash('Voting is already closed.');
+        } else {
+            $start = min(utc_now(), $contest['starts_at']);
+            db_run('UPDATE contests SET starts_at = ?, ends_at = ?, updated_at = ? WHERE id = ?', [$start, utc_now(), utc_now(), $id]);
+            flash('Voting is closed. Final results are on the home page.');
+        }
+    } else {
+        if (trim((string) ($_POST['confirm'] ?? '')) !== 'RESET') {
+            flash('Votes were not reset. Type RESET in the box to confirm.');
+        } else {
+            $n = db_one('SELECT COUNT(*) AS n FROM votes WHERE contest_id = ?', [$id]);
+            db_run('DELETE FROM voters WHERE contest_id = ?', [$id]);
+            flash("All {$n['n']} votes and the voter list were cleared.");
+        }
+    }
+    redirect(admin_base() . '/contests/' . $id);
 }
 
 function admin_entries(): void

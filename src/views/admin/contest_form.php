@@ -94,6 +94,14 @@ $styleRows = array_pad(array_values($form['styles'] ?? []), BOOTH_MAX_STYLES, ['
     <fieldset>
       <legend>Options</legend>
       <label class="toggle"><span>Approve entries before they appear<small>Off: new entries show up right away</small></span><input class="switch" type="checkbox" name="require_approval" value="1" <?= !empty($form['require_approval']) ? 'checked' : '' ?>></label>
+      <div class="field" style="max-width:360px">
+        <label for="video_posting">Who can add videos</label>
+        <select id="video_posting" name="video_posting">
+          <option value="anyone" <?= ($form['video_posting'] ?? 'anyone') === 'anyone' ? 'selected' : '' ?>>Anyone (from the Videos page)</option>
+          <option value="admins" <?= ($form['video_posting'] ?? '') === 'admins' ? 'selected' : '' ?>>Only admins</option>
+        </select>
+        <span class="hint">Admins add videos from the same page while signed in. With approval on, other people's videos wait for you.</span>
+      </div>
       <label class="toggle"><span>Show live vote counts<small>Off: counts stay hidden until voting closes</small></span><input class="switch" type="checkbox" name="show_counts" value="1" <?= !empty($form['show_counts']) ? 'checked' : '' ?>></label>
     </fieldset>
   </section>

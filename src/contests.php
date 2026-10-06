@@ -57,6 +57,7 @@ function contest_from_post(): array
         'require_approval' => post_bool('require_approval') ? 1 : 0,
         'show_counts' => post_bool('show_counts') ? 1 : 0,
         'booth_enabled' => post_bool('booth_enabled') ? 1 : 0,
+        'video_posting' => ($_POST['video_posting'] ?? '') === 'admins' ? 'admins' : 'anyone',
         'starts_local' => post_str('starts_at', 20),
         'ends_local' => post_str('ends_at', 20),
     ];
@@ -127,7 +128,7 @@ function contest_save(?int $id, array $data, array $categories): int
     $pdo->beginTransaction();
     try {
         $fields = ['mode', 'title', 'subtitle', 'starts_at', 'ends_at', 'event_name', 'event_details',
-            'require_approval', 'show_counts', 'booth_enabled', 'booth_styles', 'booth_daily_limit'];
+            'require_approval', 'show_counts', 'booth_enabled', 'booth_styles', 'booth_daily_limit', 'video_posting'];
         $values = array_map(fn($f) => $data[$f], $fields);
         if ($id === null) {
             db_run(

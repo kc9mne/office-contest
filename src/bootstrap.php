@@ -21,21 +21,26 @@ require APP_ROOT . '/src/booth.php';
 require APP_ROOT . '/src/qr.php';
 require APP_ROOT . '/src/entries.php';
 require APP_ROOT . '/src/voters.php';
+require APP_ROOT . '/src/videos.php';
 
-$secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
-session_name('officevote');
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path' => base_path() ?: '/',
-    'secure' => $secure,
-    'httponly' => true,
-    'samesite' => 'Lax',
-]);
-session_start();
+if (PHP_SAPI !== 'cli') {
+    $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    session_name('officevote');
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path' => base_path() ?: '/',
+        'secure' => $secure,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    session_start();
 
-header('X-Content-Type-Options: nosniff');
-header('X-Frame-Options: DENY');
-header("Content-Security-Policy: default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header("Content-Security-Policy: default-src 'self'; img-src 'self' data: blob: https://i.ytimg.com; media-src 'self' blob:; "
+        . "frame-src https://www.youtube-nocookie.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        . "font-src 'self' https://fonts.gstatic.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+}
 
 try {
     migrate();

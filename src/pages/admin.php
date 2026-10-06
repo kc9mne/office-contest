@@ -128,6 +128,7 @@ function admin_contest_form(?int $id): void
             'show_counts' => 1,
             'booth_enabled' => $m['booth'] ? 1 : 0,
             'booth_daily_limit' => 200,
+            'video_posting' => 'anyone',
             'styles' => $m['booth_styles'],
         ];
     }
@@ -243,6 +244,21 @@ function admin_gallery(): void
 {
     $contest = active_contest();
     if (is_post() && $contest) {
+        if (isset($_POST['video_id'])) {
+            $video = video_find((int) $_POST['video_id']);
+            if (!$video || (int) $video['contest_id'] !== (int) $contest['id']) {
+                abort(404);
+            }
+            $action = (string) ($_POST['action'] ?? '');
+            if ($action === 'delete') {
+                video_delete($video);
+                flash('Video deleted.');
+            } else {
+                db_run('UPDATE videos SET visible = ? WHERE id = ?', [$action === 'show' ? 1 : 0, $video['id']]);
+                flash($action === 'show' ? 'Video is showing on the Videos page.' : 'Video hidden from the Videos page.');
+            }
+            redirect(admin_base() . '/gallery#videos');
+        }
         $photo = booth_photo_find((int) ($_POST['photo_id'] ?? 0));
         if (!$photo || (int) $photo['contest_id'] !== (int) $contest['id']) {
             abort(404);
@@ -261,6 +277,7 @@ function admin_gallery(): void
         'title' => 'Gallery',
         'contest' => $contest,
         'photos' => $contest ? booth_admin_photos((int) $contest['id']) : [],
+        'videos' => $contest ? contest_videos_admin((int) $contest['id']) : [],
     ], 'layout_admin');
 }
 

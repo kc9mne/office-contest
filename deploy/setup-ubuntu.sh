@@ -122,7 +122,8 @@ cat > /etc/apache2/sites-available/officevote.conf <<CONF
         ExpiresDefault "access plus 7 days"
     </Directory>
 
-    LimitRequestBody 346030080
+    # A little above PHP's post_max_size, so PHP (not Apache) answers oversized uploads with a clear message
+    LimitRequestBody 419430400
     Header always set Referrer-Policy same-origin
     Header always set Permissions-Policy "camera=(self)"
 

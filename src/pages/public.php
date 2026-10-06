@@ -13,6 +13,7 @@ function page_home(): void
         $vars['phase'] = contest_phase($contest);
         $vars['standings'] = contest_standings($contest);
         $vars['galleryCount'] = count(booth_gallery_photos((int) $contest['id'])) + count($vars['standings']['entries']);
+        $vars['videoCount'] = count(contest_videos((int) $contest['id']));
         $vars['showResults'] = $vars['phase'] === 'closed' || ($vars['phase'] === 'live' && $contest['show_counts']);
     }
     view('home', $vars);
@@ -27,6 +28,7 @@ function page_gallery(): void
         'mode' => $contest['mode'] ?? 'general',
         'photos' => $contest ? booth_gallery_photos((int) $contest['id']) : [],
         'entries' => $contest ? contest_entries((int) $contest['id']) : [],
+        'videoCount' => $contest ? count(contest_videos((int) $contest['id'])) : 0,
     ]);
 }
 
@@ -200,5 +202,63 @@ function page_vote(): void
         'picks' => voter_picks($voter),
         'nameError' => $nameError,
         'changingName' => isset($_GET['name']),
+    ]);
+}
+
+function page_videos(): void
+{
+    $contest = active_contest();
+    if (!$contest) {
+        redirect('/');
+    }
+    device_id();
+    $id = (int) $contest['id'];
+    $errors = [];
+    $form = ['kind' => 'upload', 'title' => '', 'posted_by' => '', 'youtube_url' => ''];
+    $canPost = can_post_videos($contest);
+
+    if (is_post()) {
+        $wantsJson = str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
+        // A too-large upload arrives with an empty body; explain it instead of "form expired".
+        $form = [
+            'kind' => ($_POST['kind'] ?? '') === 'youtube' ? 'youtube' : 'upload',
+            'title' => post_str('title', 120),
+            'posted_by' => post_str('posted_by', 80),
+            'youtube_url' => post_str('youtube_url', 300),
+        ];
+        if (!$canPost) {
+            $errors['form'] = 'Only organizers can add videos to this contest.';
+        } elseif (!is_admin() && device_video_count($id) >= VIDEOS_PER_DEVICE) {
+            $errors['form'] = 'This phone has already added ' . VIDEOS_PER_DEVICE . ' videos. Ask an organizer if you need to add more.';
+        } else {
+            [$video, $err] = $form['kind'] === 'youtube'
+                ? save_youtube_video($contest, $form['youtube_url'], $form['title'], $form['posted_by'])
+                : save_video_upload($contest, $_FILES['video'] ?? [], $form['title'], $form['posted_by']);
+            if ($err) {
+                $errors[$form['kind'] === 'youtube' ? 'youtube_url' : 'video'] = $err;
+            } else {
+                $message = !$video['visible'] ? 'Thanks! An organizer will approve your video shortly.'
+                    : ($video['status'] === 'processing' ? 'Uploaded! Your video is being prepared and will appear here in a few minutes.' : 'Video added.');
+                if ($wantsJson) {
+                    json_response(['ok' => true, 'message' => $message, 'redirect' => url('/videos')]);
+                }
+                flash($message);
+                redirect('/videos');
+            }
+        }
+        if ($wantsJson) {
+            json_response(['error' => reset($errors)], 422);
+        }
+    }
+
+    view('videos', [
+        'title' => 'Videos',
+        'contest' => $contest,
+        'mode' => $contest['mode'],
+        'videos' => contest_videos($id),
+        'processing' => (int) (db_one("SELECT COUNT(*) AS n FROM videos WHERE contest_id = ? AND status = 'processing' AND device_id = ?", [$id, device_id()])['n'] ?? 0),
+        'canPost' => $canPost && contest_phase($contest) !== 'closed' || is_admin(),
+        'errors' => $errors,
+        'form' => $form,
     ]);
 }

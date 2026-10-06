@@ -109,6 +109,15 @@ function csrf_check(): void
     if (!is_post()) {
         return;
     }
+    // An upload bigger than post_max_size arrives with no fields at all.
+    $length = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
+    if (!$_POST && !$_FILES && $length > 0) {
+        $message = 'That file is too large for the server. Videos can be up to ' . VIDEO_MAX_MB . ' MB.';
+        if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {
+            json_response(['error' => $message], 413);
+        }
+        abort(413, $message);
+    }
     $sent = (string) ($_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
     if ($sent === '' || !hash_equals(csrf_token(), $sent)) {
         if (str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json')) {

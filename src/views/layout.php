@@ -10,7 +10,7 @@
     <?php $here = request_path(); ?>
     <nav class="sitenav" aria-label="Site">
       <?php foreach (['/' => 'Home', '/vote' => 'Vote', '/join' => 'Enter', '/gallery' => 'Gallery'] as $p => $label): ?>
-        <a href="<?= e(url($p)) ?>" <?= $here === $p || ($p === '/join' && $here === '/join/done') ? 'aria-current="page"' : '' ?>><?= e($label) ?></a>
+        <a href="<?= e(url($p)) ?>" <?= $here === $p || ($p === '/join' && $here === '/join/done') || ($p === '/gallery' && $here === '/videos') ? 'aria-current="page"' : '' ?>><?= e($label) ?></a>
       <?php endforeach; ?>
     </nav>
   </header>

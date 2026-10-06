@@ -102,7 +102,7 @@
   <nav class="home-links" aria-label="More">
     <a class="card home-link" href="<?= e(url('/gallery')) ?>">Gallery <span class="muted"><?= $galleryCount ? $galleryCount . ' photo' . ($galleryCount === 1 ? '' : 's') . ' →' : 'Coming soon →' ?></span></a>
     <?php if ($contest['event_name'] !== ''): ?>
-      <div class="card home-link" style="display:grid; gap:2px"><span class="eyebrow"><?= e($contest['event_name']) ?></span><span><?= e($contest['event_details'] !== '' ? $contest['event_details'] : 'Details coming soon') ?></span></div>
+      <a class="card home-link" href="<?= e(url('/videos')) ?>" style="display:grid; gap:2px"><span class="eyebrow"><?= e($contest['event_name']) ?></span><span><?= e($contest['event_details'] !== '' ? $contest['event_details'] : 'Details coming soon') ?></span><span class="muted"><?= $videoCount ? 'Watch ' . $videoCount . ' video' . ($videoCount === 1 ? '' : 's') . ' →' : 'Videos will be posted here →' ?></span></a>
     <?php endif; ?>
   </nav>
 <?php endif; ?>

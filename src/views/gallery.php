@@ -6,6 +6,12 @@
   </div>
   <?php if ($total): ?><span class="chip"><?= $total ?> photo<?= $total === 1 ? '' : 's' ?></span><?php endif; ?>
 </div>
+<?php if ($contest): ?>
+<nav class="subtabs" aria-label="Gallery sections">
+  <a href="<?= e(url('/gallery')) ?>" aria-current="page">Photos</a>
+  <a href="<?= e(url('/videos')) ?>">Videos<?= $videoCount ? ' (' . $videoCount . ')' : '' ?></a>
+</nav>
+<?php endif; ?>
 
 <?php if (!$contest): ?>
   <section class="card empty"><p><strong>No contest running right now.</strong></p></section>

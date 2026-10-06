@@ -33,6 +33,8 @@ if ($path === '/') {
     page_photo($m[1]);
 } elseif ($path === '/gallery') {
     page_gallery();
+} elseif ($path === '/videos') {
+    page_videos();
 } elseif ($path === '/join') {
     page_join();
 } elseif ($path === '/join/done') {

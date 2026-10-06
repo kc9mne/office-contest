@@ -162,6 +162,74 @@
     });
   }
 
+  // ---------- videos ----------
+
+  // YouTube: load the player only when someone taps play (no YouTube tracking until then).
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('[data-youtube]');
+    if (!btn) return;
+    const frame = document.createElement('iframe');
+    frame.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(btn.dataset.youtube)}?autoplay=1&rel=0&playsinline=1`;
+    frame.title = btn.getAttribute('aria-label') || 'YouTube video';
+    frame.allow = 'autoplay; encrypted-media; picture-in-picture; fullscreen';
+    frame.allowFullscreen = true;
+    btn.replaceWith(frame);
+  });
+
+  // Pages waiting on a video conversion refresh themselves.
+  const refresh = document.querySelector('[data-refresh-in]');
+  if (refresh) setTimeout(() => { if (!document.activeElement?.matches('input, textarea')) location.reload(); }, +refresh.dataset.refreshIn * 1000);
+
+  // Add a video: switch between upload and YouTube, and upload with a progress bar.
+  const vform = document.querySelector('[data-video-form]');
+  if (vform) {
+    const kind = vform.querySelector('input[name="kind"]');
+    document.querySelector('[data-video-tabs]')?.addEventListener('click', e => {
+      const tab = e.target.closest('[data-kind]');
+      if (!tab) return;
+      kind.value = tab.dataset.kind;
+      document.querySelectorAll('[data-video-tabs] [data-kind]').forEach(t => t.setAttribute('aria-selected', t === tab));
+      vform.querySelectorAll('[data-kind-panel]').forEach(p => { p.hidden = p.dataset.kindPanel !== tab.dataset.kind; });
+    });
+    vform.addEventListener('submit', e => {
+      if (kind.value !== 'upload') return;
+      const file = vform.querySelector('#video').files[0];
+      const field = vform.querySelector('[data-kind-panel="upload"]');
+      const showError = msg => {
+        field.classList.add('has-error');
+        let el = field.querySelector('.error');
+        if (!el) { el = document.createElement('span'); el.className = 'error'; el.setAttribute('role', 'alert'); field.append(el); }
+        el.textContent = msg;
+      };
+      e.preventDefault();
+      if (!file) return showError('Choose a video first.');
+      if (file.size > 300 * 1024 * 1024) return showError(`That video is ${Math.round(file.size / 1048576)} MB. The limit is 300 MB. Trim it, or post it to YouTube and paste the link instead.`);
+      const btn = vform.querySelector('button[type="submit"]');
+      const box = vform.querySelector('[data-progress]');
+      const bar = box.querySelector('.bar span');
+      const text = box.querySelector('[data-progress-text]');
+      btn.disabled = true; box.hidden = false;
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', vform.action);
+      xhr.setRequestHeader('Accept', 'application/json');
+      xhr.upload.onprogress = ev => {
+        if (!ev.lengthComputable) return;
+        const pct = Math.round(ev.loaded / ev.total * 100);
+        bar.style.width = pct + '%';
+        text.textContent = pct < 100 ? `Uploading… ${pct}% (${Math.round(ev.loaded / 1048576)} of ${Math.round(ev.total / 1048576)} MB). Keep this page open.` : 'Upload done. Saving…';
+      };
+      xhr.onload = () => {
+        let json = {};
+        try { json = JSON.parse(xhr.responseText); } catch (_) { /* not JSON */ }
+        if (xhr.status >= 200 && xhr.status < 300 && json.ok) { location.href = json.redirect || location.href; return; }
+        btn.disabled = false; box.hidden = true;
+        showError(json.csrfExpired ? 'This page was open too long. Reload it and try again.' : (json.error || 'The upload failed. Try again.'));
+      };
+      xhr.onerror = () => { btn.disabled = false; box.hidden = true; showError('The upload stopped. Check your connection and try again.'); };
+      xhr.send(new FormData(vform));
+    });
+  }
+
   // Brand color: show the hex value next to the picker.
   const color = document.getElementById('brand_color');
   const hex = document.getElementById('brandHex');

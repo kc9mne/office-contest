@@ -307,6 +307,26 @@
     });
   }
 
+  // Contest form: background picker.
+  const bgOptions = document.querySelector('[data-mode-backgrounds]');
+  if (bgOptions) {
+    const bgs = JSON.parse(bgOptions.dataset.modeBackgrounds || '{}');
+    const thumb = bgOptions.querySelector('[data-default-thumb]');
+    document.querySelector('form[data-contest-form]')?.addEventListener('change', e => {
+      if (e.target.name === 'mode') {
+        const src = bgs[e.target.value];
+        thumb.style.backgroundImage = src ? `url("${src}")` : '';
+        thumb.innerHTML = src ? '' : '<span>No built-in background for this type</span>';
+      }
+      if (e.target.id === 'background' && e.target.files[0]) {
+        const custom = document.getElementById('customThumb');
+        custom.style.backgroundImage = `url("${URL.createObjectURL(e.target.files[0])}")`;
+        custom.innerHTML = '';
+        bgOptions.querySelector('input[value="custom"]').checked = true;
+      }
+    });
+  }
+
   // Brand color: show the hex value next to the picker.
   const color = document.getElementById('brand_color');
   const hex = document.getElementById('brandHex');

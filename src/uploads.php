@@ -66,3 +66,37 @@ function upload_error_message(int $code): string
         default => 'The upload failed. Try again.',
     };
 }
+
+/** Save an uploaded page background as a JPEG, at most 2400px wide. Returns [path, null] or [null, error]. */
+function save_background_upload(array $file): array
+{
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        return [null, upload_error_message((int) ($file['error'] ?? UPLOAD_ERR_NO_FILE))];
+    }
+    if ($file['size'] > 15 * 1024 * 1024) {
+        return [null, 'That image is over 15 MB. Use a smaller one.'];
+    }
+    $info = @getimagesize($file['tmp_name']);
+    if (!$info || !in_array($info[2], [IMAGETYPE_PNG, IMAGETYPE_JPEG, IMAGETYPE_WEBP], true)) {
+        return [null, 'Use a JPG, PNG or WebP image for the background.'];
+    }
+    $img = @imagecreatefromstring((string) file_get_contents($file['tmp_name']));
+    if (!$img) {
+        return [null, 'That image could not be read.'];
+    }
+    [$w, $h] = [imagesx($img), imagesy($img)];
+    if ($w > 2400) {
+        $out = imagecreatetruecolor(2400, (int) round($h * 2400 / $w));
+        imagecopyresampled($out, $img, 0, 0, 0, 0, imagesx($out), imagesy($out), $w, $h);
+        $img = $out;
+    }
+    $dir = media_dir() . '/backgrounds';
+    if (!is_dir($dir) && !mkdir($dir, 0775, true)) {
+        return [null, 'The server could not save the image.'];
+    }
+    $relative = 'backgrounds/bg-' . bin2hex(random_bytes(6)) . '.jpg';
+    if (!imagejpeg($img, media_dir() . '/' . $relative, 80)) {
+        return [null, 'The server could not save the image.'];
+    }
+    return [$relative, null];
+}

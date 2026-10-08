@@ -19,7 +19,7 @@ It also has an **AI photobooth**: a tablet or webcam PC that takes a photo and t
 - Restyled by OpenAI's image API. The key stays on the server, encrypted. Demo mode works without a key.
 - Looks and AI instructions editable per contest; daily photo limit to cap costs.
 
-**Contest modes:** Halloween, Holiday party and General. Each sets the colors, wording, starter categories and photobooth looks.
+**Contest modes:** Halloween, Holiday party and General. Each sets the colors, wording, starter categories and photobooth looks. Each contest can also have a page background: the built-in spooky Halloween scene, none, or your own image.
 
 **Admin (secret link + PIN)**
 - Company logo, name and brand color; department list; time zone.

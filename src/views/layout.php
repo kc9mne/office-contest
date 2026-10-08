@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="en" data-mode="<?= e($mode ?? 'general') ?>" style="<?= e(brand_style()) ?>">
+<?php $pageBg = contest_background_url(isset($contest) && is_array($contest) ? $contest : active_contest()); ?>
+<html lang="en" data-mode="<?= e($mode ?? 'general') ?>" class="<?= $pageBg ? 'has-bg' : '' ?>" style="<?= e(brand_style() . ($pageBg ? "--page-bg:url('{$pageBg}');" : '')) ?>">
 <head>
 <?php require __DIR__ . '/partials/head.php'; ?>
 </head>

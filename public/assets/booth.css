@@ -92,3 +92,10 @@ body.booth-body .brand-name small { color: var(--stage-muted); }
 .kcheck { display: flex; gap: 10px; align-items: flex-start; color: var(--stage-muted); font-size: 15px; }
 .kcheck input { width: 22px; height: 22px; margin-top: 1px; flex: none; accent-color: var(--accent); }
 @media (orientation: landscape) and (min-width: 761px) { .kside { overflow-y: auto; } }
+
+/* Contest background behind the booth, faded so the camera stays the focus */
+html.has-bg body.booth-body { background: #0E0A12; }
+html.has-bg .kiosk { background: linear-gradient(180deg, rgb(14 10 18 / .55), rgb(14 10 18 / .88)), var(--page-bg) center / cover no-repeat; }
+@media (orientation: portrait) {
+  html.has-bg .kiosk { background-position: center, 82% center; }
+}

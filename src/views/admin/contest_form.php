@@ -18,7 +18,7 @@ $styleRows = array_pad(array_values($form['styles'] ?? []), BOOTH_MAX_STYLES, ['
 
 <?php if ($errors): ?><div class="alert" role="alert"><strong>Check the highlighted fields.</strong></div><?php endif; ?>
 
-<form class="stack" method="post" novalidate data-contest-form data-new="<?= $contest ? '0' : '1' ?>" data-mode-defaults="<?= e(json_encode($modeDefaults)) ?>">
+<form class="stack" method="post" enctype="multipart/form-data" novalidate data-contest-form data-new="<?= $contest ? '0' : '1' ?>" data-mode-defaults="<?= e(json_encode($modeDefaults)) ?>">
   <?= csrf_field() ?>
 
   <section class="card">
@@ -70,6 +70,41 @@ $styleRows = array_pad(array_values($form['styles'] ?? []), BOOTH_MAX_STYLES, ['
         <textarea id="categories" name="categories" rows="5"><?= e($form['categories']) ?></textarea>
         <span class="hint">Up to 10. The overall winner is worked out from the total of all category votes, so you don't need an "Overall" category.</span>
         <?= $err('categories') ?>
+      </div>
+    </fieldset>
+  </section>
+
+  <?php
+    $bgMode = $form['background_mode'] ?? 'default';
+    $bgPath = $form['background_path'] ?? ($contest['background_path'] ?? null);
+    $modeBgs = array_map(fn($m) => $m['background'] ? url('/' . $m['background']) : null, modes());
+  ?>
+  <section class="card">
+    <fieldset>
+      <legend>Background</legend>
+      <span class="hint">A picture behind the contest's pages and the photobooth. Pages with a background use dark colors so text stays readable.</span>
+      <div class="bg-options" data-mode-backgrounds="<?= e(json_encode($modeBgs)) ?>">
+        <label class="bg-option">
+          <input type="radio" name="background_mode" value="default" <?= $bgMode === 'default' ? 'checked' : '' ?>>
+          <span class="bg-thumb" data-default-thumb style="<?= ($modeBgs[$form['mode']] ?? null) ? 'background-image:url(' . e($modeBgs[$form['mode']]) . ')' : '' ?>"><?= ($modeBgs[$form['mode']] ?? null) ? '' : '<span>No built-in background for this type</span>' ?></span>
+          <b>Built-in for this type</b>
+        </label>
+        <label class="bg-option">
+          <input type="radio" name="background_mode" value="none" <?= $bgMode === 'none' ? 'checked' : '' ?>>
+          <span class="bg-thumb plain"><span>Plain</span></span>
+          <b>No background</b>
+        </label>
+        <label class="bg-option">
+          <input type="radio" name="background_mode" value="custom" <?= $bgMode === 'custom' ? 'checked' : '' ?>>
+          <span class="bg-thumb" id="customThumb" style="<?= $bgPath ? 'background-image:url(' . e(media_url($bgPath)) . ')' : '' ?>"><?= $bgPath ? '' : '<span>Upload below</span>' ?></span>
+          <b>Your own image</b>
+        </label>
+      </div>
+      <div class="<?= $cls('background') ?>">
+        <label for="background"><?= $bgPath ? 'Replace your image' : 'Upload an image' ?> <span class="hint">(optional)</span></label>
+        <input id="background" name="background" type="file" accept="image/jpeg,image/png,image/webp">
+        <span class="hint">A wide picture works best, at least 1600 pixels across. Keep the busy parts near the edges; the middle sits behind the page content.</span>
+        <?= $err('background') ?>
       </div>
     </fieldset>
   </section>

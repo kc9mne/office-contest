@@ -14,6 +14,7 @@ function modes(): array
             'noun' => 'costume',
             'categories' => ['Scariest', 'Funniest', 'Most Creative'],
             'event_name' => 'Costume parade',
+            'background' => 'assets/bg/halloween.webp',
             'booth' => true,
             'booth_verb' => 'Make it spooky',
             'booth_styles' => [
@@ -37,6 +38,7 @@ function modes(): array
             'noun' => 'sweater',
             'categories' => ['Ugliest', 'Most Festive', 'Best DIY'],
             'event_name' => 'Sweater walk',
+            'background' => null,
             'booth' => true,
             'booth_verb' => 'Make it festive',
             'booth_styles' => [
@@ -54,6 +56,7 @@ function modes(): array
             'noun' => 'entry',
             'categories' => ['Best Flavor', 'Most Original', 'Best Presentation'],
             'event_name' => 'Tasting',
+            'background' => null,
             'booth' => false,
             'booth_verb' => 'Make it fun',
             'booth_styles' => [

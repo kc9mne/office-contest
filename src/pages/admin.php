@@ -101,6 +101,21 @@ function admin_contest_form(?int $id): void
 
     if (is_post()) {
         [$data, $categories, $errors] = contest_from_post();
+        $data['background_path'] = $contest['background_path'] ?? null;
+        $upload = $_FILES['background'] ?? null;
+        if (!$errors && $upload && ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            [$bgPath, $bgError] = save_background_upload($upload);
+            if ($bgError) {
+                $errors['background'] = $bgError;
+            } else {
+                delete_media($data['background_path']);
+                $data['background_path'] = $bgPath;
+                $data['background_mode'] = 'custom';
+            }
+        }
+        if (!$errors && $data['background_mode'] === 'custom' && !$data['background_path']) {
+            $errors['background'] = 'Choose an image to upload, or pick another background option.';
+        }
         if (!$errors) {
             $newId = contest_save($id, $data, $categories);
             flash($id ? 'Contest saved.' : 'Contest created. Make it live when you are ready.');
@@ -133,6 +148,8 @@ function admin_contest_form(?int $id): void
             'booth_enabled' => $m['booth'] ? 1 : 0,
             'booth_daily_limit' => 200,
             'video_posting' => 'anyone',
+            'background_mode' => 'default',
+            'background_path' => null,
             'styles' => $m['booth_styles'],
         ];
     }

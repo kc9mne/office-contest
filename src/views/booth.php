@@ -13,9 +13,9 @@ $mode = $contest['mode'] ?? 'general';
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Figtree:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="<?= e(url('/assets/app.css')) ?>?v=5">
-<link rel="stylesheet" href="<?= e(url('/assets/booth.css')) ?>?v=5">
-<script src="<?= e(url('/assets/booth.js')) ?>?v=5" defer></script>
+<link rel="stylesheet" href="<?= e(url('/assets/app.css')) ?>?v=6">
+<link rel="stylesheet" href="<?= e(url('/assets/booth.css')) ?>?v=6">
+<script src="<?= e(url('/assets/booth.js')) ?>?v=6" defer></script>
 </head>
 <body class="booth-body">
 <div class="kiosk" id="kiosk" data-state="<?= e($state) ?>" data-config="<?= e(json_encode($config)) ?>">

@@ -13,17 +13,31 @@ $Noun = ucfirst($noun);
 <?php else: ?>
 <form class="stack" method="post" enctype="multipart/form-data" novalidate data-join-form>
   <?= csrf_field() ?>
-  <div class="<?= $cls('photo') ?>">
-    <label class="shot" for="photo" id="shot">
-      <input class="sr-only" type="file" id="photo" name="photo" accept="image/*" required>
-      <span class="shot-empty">
+  <div class="<?= $cls('photo') ?>" data-photo-field>
+    <div class="shot" id="shot">
+      <div class="shot-empty" id="shotEmpty">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-        <b>Take a photo</b>
-        <span>or choose one from your phone</span>
-      </span>
+        <b>Add your photo</b>
+        <span><?= $contest['mode'] === 'general' ? 'A photo of your entry.' : "A photo of you in your {$noun}." ?></span>
+        <span class="shot-actions">
+          <button type="button" class="btn primary" data-camera-open hidden>Take a photo</button>
+          <label class="btn ghost" for="photo" id="chooseLabel">Choose a photo</label>
+        </span>
+      </div>
+      <video id="camVideo" playsinline muted autoplay hidden></video>
       <img id="shotPreview" alt="Your photo" hidden>
-    </label>
-    <span class="hint"><?= $contest['mode'] === 'general' ? 'A photo of your entry.' : "A photo of you in your {$noun}." ?></span>
+      <div class="shot-bar" id="camBar" hidden>
+        <button type="button" class="btn small ghost" data-camera-cancel>Cancel</button>
+        <button type="button" class="snap" data-camera-snap aria-label="Take the photo"></button>
+        <button type="button" class="btn small ghost" data-camera-flip hidden>Flip</button>
+      </div>
+      <div class="shot-bar" id="doneBar" hidden>
+        <button type="button" class="btn small ghost" data-photo-clear>Change photo</button>
+      </div>
+    </div>
+    <input class="sr-only" type="file" id="photo" name="photo" accept="image/*">
+    <input type="hidden" name="photo_data" id="photoData">
+    <span class="error" id="camError" role="alert" hidden></span>
     <?= $err('photo') ?>
   </div>
 

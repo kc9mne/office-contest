@@ -50,42 +50,20 @@ function page_join(): void
     $form = ['name' => '', 'department' => '', 'title' => '', 'consent' => true];
 
     if (is_post() && $phase !== 'closed') {
-        $form = [
-            'name' => post_str('name', 100),
-            'department' => post_str('department', 80),
-            'title' => post_str('title', 100),
-            'consent' => post_bool('consent'),
-        ];
-        $departments = site_departments();
-        if ($form['name'] === '') {
-            $errors['name'] = 'Enter your name.';
-        }
-        if ($form['department'] === '') {
-            $errors['department'] = 'Choose your department.';
-        } elseif ($departments && !in_array($form['department'], $departments, true)) {
-            $errors['department'] = 'Choose your department from the list.';
-        }
-        if (!$form['consent']) {
-            $errors['consent'] = 'Tick the box so your photo can be shown in the gallery and on screens.';
-        }
+        [$form, $errors] = entry_form_from_post();
         if (device_entry_count((int) $contest['id']) >= ENTRIES_PER_DEVICE) {
             $errors['photo'] = 'This phone has already sent ' . ENTRIES_PER_DEVICE . ' entries. Ask an organizer if you need another.';
         }
         $photo = null;
         if (!$errors) {
-            [$photo, $err] = save_entry_photo($contest, $_FILES['photo'] ?? []);
+            [$photo, $err] = save_entry_photo($contest, entry_photo_input());
             if ($err) {
                 $errors['photo'] = $err;
             }
         }
         if (!$errors) {
-            $status = $contest['require_approval'] ? 'pending' : 'approved';
-            db_run(
-                'INSERT INTO entries (contest_id, name, department, title, photo_path, status, device_id, ip, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [$contest['id'], $form['name'], $form['department'], $form['title'], $photo, $status, device_id(), client_ip(), utc_now()]
-            );
-            $_SESSION['joined'] = (int) db()->lastInsertId();
+            $entry = create_entry($contest, $form, $photo, device_id());
+            $_SESSION['joined'] = (int) $entry['id'];
             redirect('/join/done');
         }
     }

@@ -85,3 +85,10 @@ body.booth-body .brand-name small { color: var(--stage-muted); }
 .kdialog select { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--stage-line); background: var(--stage); color: var(--stage-fg); }
 .kdialog .hint { color: var(--stage-muted); }
 @media (prefers-reduced-motion: reduce) { .shimmer, .spin, .count.tick { animation: none; } .flash { animation: none; opacity: 0; } }
+
+/* enter the contest from the booth */
+.kbtn.wide { grid-column: 1 / -1; }
+.kside .field select { width: 100%; font-size: 18px; padding: 12px 14px; border-radius: 10px; background: var(--stage-2); border: 1px solid var(--stage-line); color: var(--stage-fg); }
+.kcheck { display: flex; gap: 10px; align-items: flex-start; color: var(--stage-muted); font-size: 15px; }
+.kcheck input { width: 22px; height: 22px; margin-top: 1px; flex: none; accent-color: var(--accent); }
+@media (orientation: landscape) and (min-width: 761px) { .kside { overflow-y: auto; } }

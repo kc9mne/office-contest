@@ -15,7 +15,7 @@
   const IDLE_RESET_MS = 90_000;
   const DONE_RESET_S = 45;
 
-  const st = { stage: 'attract', kind: 'single', blob: null, blobUrl: null, photo: null, style: null, name: '', error: '' };
+  const st = { stage: 'attract', kind: 'single', flow: 'booth', entry: { name: '', department: '', title: '', consent: true }, blob: null, blobUrl: null, photo: null, style: null, name: '', error: '' };
   let stream = null, timer = null, idleTimer = null, busy = false;
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -123,7 +123,7 @@
   function reset() {
     clearInterval(timer);
     if (st.blobUrl) URL.revokeObjectURL(st.blobUrl);
-    Object.assign(st, { kind: 'single', blob: null, blobUrl: null, photo: null, style: null, name: '', error: '' });
+    Object.assign(st, { kind: 'single', flow: 'booth', entry: { name: '', department: '', title: '', consent: true }, blob: null, blobUrl: null, photo: null, style: null, name: '', error: '' });
     go('attract');
   }
 
@@ -180,6 +180,39 @@
     }
   }
 
+  async function submitEntry() {
+    if (busy) return;
+    const e = st.entry;
+    const problem = !e.name.trim() ? 'Enter your name.' : !e.department.trim() ? 'Choose your department.'
+      : !e.consent ? 'Tick the box so your photo can be shown in the gallery and on screens.' : '';
+    if (problem) { st.error = problem; render(); return; }
+    busy = true;
+    const btn = side.querySelector('[data-act="submitEntry"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+    try {
+      await freshToken();
+      const res = await post('/entry', {
+        photo: new File([st.blob], 'entry.jpg', { type: 'image/jpeg' }),
+        name: e.name.trim(), department: e.department.trim(), title: e.title.trim(), consent: e.consent ? '1' : '',
+      });
+      if (!res.ok) { st.error = res.json.error || 'The entry could not be sent. Try again.'; render(); return; }
+      go('entryDone', { error: '', entryStatus: res.json.status });
+      let left = DONE_RESET_S;
+      clearInterval(timer);
+      timer = setInterval(() => {
+        left--;
+        const el = $('resetIn');
+        if (el) el.textContent = left;
+        if (left <= 0) reset();
+      }, 1000);
+    } catch (_) {
+      st.error = 'No connection to the server. Check the Wi-Fi and try again.';
+      render();
+    } finally {
+      busy = false;
+    }
+  }
+
   async function waitForPhoto(id) {
     for (let i = 0; i < 80; i++) {
       await new Promise(r => setTimeout(r, 3000));
@@ -221,7 +254,7 @@
     $('split').hidden = !showSplit;
     $('cam').classList.toggle('group', isGroup());
     $('split').classList.toggle('group', isGroup());
-    still.hidden = !['preview', 'style', 'working', 'failed'].includes(s);
+    still.hidden = !['preview', 'style', 'working', 'failed', 'entryForm', 'entryDone'].includes(s);
     if (!still.hidden) still.src = st.blobUrl;
     $('camChip').textContent = still.hidden ? 'Live camera' : 'Your photo';
     $('camChip').classList.toggle('rec', still.hidden);
@@ -247,13 +280,14 @@
       <div class="kacts">
         <button type="button" class="kbtn primary huge" data-act="single" data-autofocus>Just me</button>
         <button type="button" class="kbtn primary huge" data-act="group">Group photo</button>
+        ${cfg.entries ? `<button type="button" class="kbtn ghost wide" data-act="enter">Enter the ${esc(cfg.noun)} contest</button>` : ''}
       </div>
       ${fine}`,
-    countdown: () => isGroup() ? `<h2>Squeeze in!</h2><p>Make sure everyone's face is in the frame.</p>` : `<h2>Get ready…</h2><p>Look at the camera and hold still.</p>`,
+    countdown: () => st.flow === 'entry' ? `<h2>Show off that ${esc(cfg.noun)}!</h2><p>Stand back so the whole ${esc(cfg.noun)} is in the frame.</p>` : isGroup() ? `<h2>Squeeze in!</h2><p>Make sure everyone's face is in the frame.</p>` : `<h2>Get ready…</h2><p>Look at the camera and hold still.</p>`,
     preview: () => `
       <h2>How's that?</h2><p>Keep it or take another.</p>
       <div class="kacts"><button type="button" class="kbtn ghost" data-act="retake">Retake</button><button type="button" class="kbtn primary" data-act="keep" data-autofocus>Looks good</button></div>
-      <button type="button" class="kbtn link" data-act="reset">← Go back to switch between Just me and Group photo</button>`,
+      <button type="button" class="kbtn link" data-act="reset">← Go back to the start</button>`,
     style: () => `
       <h2>Pick your look</h2>
       <div class="kstyles${cfg.styles.length > 4 ? ' many' : ''}">${cfg.styles.map((x, i) => `<button type="button" class="kstyle" data-style="${i}" aria-pressed="${st.style === i}"><span class="sw" style="background:linear-gradient(160deg,${esc(x.from)},${esc(x.to)})"></span>${esc(x.name)}</button>`).join('')}</div>
@@ -278,6 +312,28 @@
         <button type="button" class="kbtn ghost" data-act="restyle">Try another look</button>
         <button type="button" class="kbtn link" data-act="reset">Start over</button>
       </div>`,
+    entryForm: () => {
+      const e = st.entry;
+      const dept = cfg.departments.length
+        ? `<select id="eDept"><option value="">Choose your department</option>${cfg.departments.map(d => `<option ${d === e.department ? 'selected' : ''}>${esc(d)}</option>`).join('')}</select>`
+        : `<input id="eDept" maxlength="80" value="${esc(e.department)}" autocomplete="off">`;
+      return `
+      <h2>Enter the contest</h2>
+      ${st.error ? `<div class="kerr" role="alert">${esc(st.error)}</div>` : ''}
+      <div class="field"><label for="eName">Your name</label><input id="eName" maxlength="100" value="${esc(e.name)}" autocomplete="off" data-autofocus></div>
+      <div class="field"><label for="eDept">Department</label>${dept}</div>
+      <div class="field"><label for="eTitle">${esc(cfg.noun.charAt(0).toUpperCase() + cfg.noun.slice(1))} name <span class="hint">(optional)</span></label><input id="eTitle" maxlength="100" value="${esc(e.title)}" autocomplete="off"></div>
+      <label class="kcheck"><input type="checkbox" id="eConsent" ${e.consent ? 'checked' : ''}> I'm OK with my photo being shown in the gallery and on the office screens.</label>
+      <button type="button" class="kbtn primary" data-act="submitEntry">Submit entry</button>
+      <button type="button" class="kbtn link" data-act="retake">Retake photo</button>`;
+    },
+    entryDone: () => `
+      <h2>${st.entryStatus === 'pending' ? 'Entry sent!' : "You're in!"}</h2>
+      <p>${st.entryStatus === 'pending' ? 'An organizer will approve it shortly.' : `${esc(st.entry.name)} is now on the voting page.`}</p>
+      <div class="kqr"><img src="${esc(cfg.qr)}?u=${encodeURIComponent(cfg.voteUrl)}" alt="QR code for the voting page">
+        <span>Scan to vote from your phone.<code>${esc(cfg.voteUrl)}</code></span></div>
+      <button type="button" class="kbtn primary" data-act="reset" data-autofocus>Next person</button>
+      <p class="kfine">Resetting in <span id="resetIn">${DONE_RESET_S}</span> seconds.</p>`,
     done: () => `
       <h2>You're in the gallery!</h2>
       <div class="kqr"><img src="${esc(cfg.qr)}?u=${encodeURIComponent(st.photo.shareUrl)}" alt="QR code linking to your photo">
@@ -296,14 +352,28 @@
     }
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (!act) return;
-    if (act === 'single' || act === 'group') { st.kind = act; render(); countdown(); }
+    if (act === 'single' || act === 'group') { st.kind = act; st.flow = 'booth'; render(); countdown(); }
+    else if (act === 'enter') { st.kind = 'single'; st.flow = 'entry'; render(); countdown(); }
+    else if (act === 'keep' && st.flow === 'entry') go('entryForm', { error: '' });
+    else if (act === 'submitEntry') submitEntry();
     else if (act === 'retake') countdown();
     else if (act === 'keep' || act === 'restyle') go('style');
     else if (act === 'make') makeIt();
     else if (act === 'gallery') addToGallery();
     else if (act === 'reset') reset();
   });
-  side.addEventListener('input', e => { if (e.target.id === 'kName') st.name = e.target.value; });
+  side.addEventListener('input', e => {
+    const t = e.target;
+    if (t.id === 'kName') st.name = t.value;
+    if (t.id === 'eName') st.entry.name = t.value;
+    if (t.id === 'eDept') st.entry.department = t.value;
+    if (t.id === 'eTitle') st.entry.title = t.value;
+    if (t.id === 'eConsent') st.entry.consent = t.checked;
+  });
+  side.addEventListener('change', e => {
+    if (e.target.id === 'eDept') st.entry.department = e.target.value;
+    if (e.target.id === 'eConsent') st.entry.consent = e.target.checked;
+  });
 
   // Keyboard or presenter clicker.
   document.addEventListener('keydown', e => {

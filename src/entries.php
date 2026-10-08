@@ -224,3 +224,64 @@ function place_label(array $row): string
     $suffix = [1 => 'ST', 2 => 'ND', 3 => 'RD'][$row['place']] ?? 'TH';
     return ($row['tied'] ? 'T-' : '') . $row['place'] . $suffix;
 }
+
+/** Read and check the entry form fields. Returns [form, errors]. */
+function entry_form_from_post(): array
+{
+    $form = [
+        'name' => post_str('name', 100),
+        'department' => post_str('department', 80),
+        'title' => post_str('title', 100),
+        'consent' => post_bool('consent'),
+    ];
+    $errors = [];
+    $departments = site_departments();
+    if ($form['name'] === '') {
+        $errors['name'] = 'Enter your name.';
+    }
+    if ($form['department'] === '') {
+        $errors['department'] = 'Choose your department.';
+    } elseif ($departments && !in_array($form['department'], $departments, true)) {
+        $errors['department'] = 'Choose your department from the list.';
+    }
+    if (!$form['consent']) {
+        $errors['consent'] = 'Tick the box so your photo can be shown in the gallery and on screens.';
+    }
+    return [$form, $errors];
+}
+
+/**
+ * The entry photo: an uploaded file, or a photo taken with the in-page camera
+ * (sent as a data: URL in photo_data). Returns a $_FILES-style array.
+ */
+function entry_photo_input(): array
+{
+    $file = $_FILES['photo'] ?? [];
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+        return $file;
+    }
+    $data = (string) ($_POST['photo_data'] ?? '');
+    if (!preg_match('#^data:image/(jpeg|png|webp);base64,#', $data, $m)) {
+        return ['error' => UPLOAD_ERR_NO_FILE];
+    }
+    $bytes = base64_decode(substr($data, strlen($m[0])), true);
+    if ($bytes === false || strlen($bytes) > ENTRY_MAX_UPLOAD) {
+        return ['error' => UPLOAD_ERR_FORM_SIZE];
+    }
+    $tmp = tempnam(sys_get_temp_dir(), 'ovcam');
+    file_put_contents($tmp, $bytes);
+    register_shutdown_function(fn() => @unlink($tmp));
+    return ['tmp_name' => $tmp, 'size' => strlen($bytes), 'error' => UPLOAD_ERR_OK];
+}
+
+/** Save a new entry. Status depends on the contest's approval setting. */
+function create_entry(array $contest, array $form, string $photoPath, string $deviceId): array
+{
+    $status = $contest['require_approval'] ? 'pending' : 'approved';
+    db_run(
+        'INSERT INTO entries (contest_id, name, department, title, photo_path, status, device_id, ip, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [$contest['id'], $form['name'], $form['department'], $form['title'], $photoPath, $status, $deviceId, client_ip(), utc_now()]
+    );
+    return entry_find((int) db()->lastInsertId());
+}

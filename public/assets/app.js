@@ -74,32 +74,106 @@
     setInterval(() => { if (!document.hidden && !document.activeElement?.matches('input, textarea, select')) location.reload(); }, 60_000);
   }
 
-  // Join: show the chosen photo, and stop double submits while it uploads.
-  const photoInput = document.querySelector('[data-join-form] #photo');
-  if (photoInput) {
-    photoInput.addEventListener('change', () => {
-      const file = photoInput.files[0];
-      const img = document.getElementById('shotPreview');
-      if (!file) return;
-      img.src = URL.createObjectURL(file);
-      img.hidden = false;
-      document.getElementById('shot').classList.add('has');
-    });
-    document.querySelector('[data-join-form]').addEventListener('submit', e => {
-      const btn = e.target.querySelector('[data-busy-text]');
-      if (!photoInput.files[0]) {
-        e.preventDefault();
-        photoInput.closest('.field').classList.add('has-error');
-        if (!photoInput.closest('.field').querySelector('.error')) {
-          const msg = document.createElement('span');
-          msg.className = 'error'; msg.setAttribute('role', 'alert'); msg.textContent = 'Add a photo.';
-          photoInput.closest('.field').append(msg);
-        }
+  // Join: take a photo with the camera right on the page, or choose a file.
+  const joinForm = document.querySelector('[data-join-form]');
+  if (joinForm) {
+    const $id = id => document.getElementById(id);
+    const fileInput = $id('photo'), dataInput = $id('photoData');
+    const video = $id('camVideo'), preview = $id('shotPreview'), shot = $id('shot');
+    const openBtn = joinForm.querySelector('[data-camera-open]'), flipBtn = joinForm.querySelector('[data-camera-flip]');
+    const camError = $id('camError');
+    let stream = null, facing = 'user';
+    const canUseCamera = window.isSecureContext && !!navigator.mediaDevices?.getUserMedia;
+    if (canUseCamera) openBtn.hidden = false;
+    else $id('chooseLabel').textContent = 'Take or choose a photo';
+
+    const show = state => { // 'empty' | 'camera' | 'photo'
+      $id('shotEmpty').hidden = state !== 'empty';
+      video.hidden = state !== 'camera';
+      $id('camBar').hidden = state !== 'camera';
+      preview.hidden = state !== 'photo';
+      $id('doneBar').hidden = state !== 'photo';
+      shot.classList.toggle('has', state === 'photo');
+      shot.classList.toggle('live', state === 'camera');
+    };
+    const stop = () => { stream?.getTracks().forEach(t => t.stop()); stream = null; };
+    const fieldError = msg => {
+      const field = joinForm.querySelector('[data-photo-field]');
+      field.classList.toggle('has-error', !!msg);
+      camError.textContent = msg || '';
+      camError.hidden = !msg;
+    };
+
+    async function startCamera() {
+      fieldError('');
+      stop();
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1920 } }, audio: false });
+      } catch (err) {
+        show('empty');
+        fieldError(err.name === 'NotAllowedError'
+          ? 'The camera is blocked. Allow it for this site (camera icon in the address bar), or tap Choose a photo.'
+          : 'The camera could not start. Tap Choose a photo instead.');
         return;
       }
+      video.srcObject = stream;
+      video.classList.toggle('mirror', facing === 'user');
+      show('camera');
+      await video.play().catch(() => {});
+      const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+      flipBtn.hidden = cams.length < 2;
+    }
+
+    function snap() {
+      const vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw || !vh) return;
+      // Same 4:5 crop the page shows, at most 1600px tall.
+      let cw = vw, ch = vh;
+      if (vw / vh > 4 / 5) cw = Math.round(vh * 4 / 5); else ch = Math.round(vw * 5 / 4);
+      const scale = Math.min(1, 1600 / ch);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(cw * scale); canvas.height = Math.round(ch * scale);
+      const ctx = canvas.getContext('2d');
+      if (facing === 'user') { ctx.translate(canvas.width, 0); ctx.scale(-1, 1); } // save the selfie the way it looked
+      ctx.drawImage(video, (vw - cw) / 2, (vh - ch) / 2, cw, ch, 0, 0, canvas.width, canvas.height);
+      dataInput.value = canvas.toDataURL('image/jpeg', 0.88);
+      fileInput.value = '';
+      preview.src = dataInput.value;
+      stop();
+      show('photo');
+      fieldError('');
+    }
+
+    openBtn.addEventListener('click', startCamera);
+    joinForm.querySelector('[data-camera-snap]').addEventListener('click', snap);
+    joinForm.querySelector('[data-camera-cancel]').addEventListener('click', () => { stop(); show('empty'); });
+    flipBtn.addEventListener('click', () => { facing = facing === 'user' ? 'environment' : 'user'; startCamera(); });
+    joinForm.querySelector('[data-photo-clear]').addEventListener('click', () => {
+      fileInput.value = ''; dataInput.value = ''; preview.removeAttribute('src'); show('empty');
+    });
+    fileInput.addEventListener('change', () => {
+      const file = fileInput.files[0];
+      if (!file) return;
+      dataInput.value = '';
+      preview.src = URL.createObjectURL(file);
+      stop();
+      show('photo');
+      fieldError('');
+    });
+
+    joinForm.addEventListener('submit', e => {
+      if (!fileInput.files[0] && !dataInput.value) {
+        e.preventDefault();
+        fieldError('Add a photo: take one or choose one.');
+        shot.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+      stop();
+      const btn = joinForm.querySelector('[data-busy-text]');
       btn.disabled = true;
       btn.textContent = btn.dataset.busyText;
     });
+    window.addEventListener('pagehide', stop);
   }
 
   // Vote page: department filter chips.

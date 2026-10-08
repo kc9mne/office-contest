@@ -21,7 +21,9 @@ function booth_route(string $sub): void
         json_response(['error' => 'The photobooth is turned off for this contest.'], 409);
     }
 
-    if ($sub === '/photos' && is_post()) {
+    if ($sub === '/entry' && is_post()) {
+        booth_entry($contest);
+    } elseif ($sub === '/photos' && is_post()) {
         booth_upload($contest);
     } elseif (preg_match('#^/photos/(\d+)(/(process|gallery))?$#', $sub, $m)) {
         $photo = booth_photo_find((int) $m[1]);
@@ -50,9 +52,32 @@ function booth_kiosk_page(?array $contest): void
         'verb' => $contest ? mode($contest['mode'])['booth_verb'] : '',
         'styles' => array_map(fn($s) => ['name' => $s['name'], 'from' => $s['from'], 'to' => $s['to']], $styles),
         'demo' => !booth_ai_configured(),
+        'entries' => $contest && contest_phase($contest) !== 'closed',
+        'noun' => $contest ? mode($contest['mode'])['noun'] : 'entry',
+        'departments' => site_departments(),
+        'approval' => $contest ? (bool) $contest['require_approval'] : false,
+        'voteUrl' => site_origin() . url('/vote'),
     ];
     $state = !$contest ? 'no_contest' : (!$contest['booth_enabled'] ? 'off' : 'ready');
     require APP_ROOT . '/src/views/booth.php';
+}
+
+/** A contest entry taken at the booth. No per-device limit: the booth is shared. */
+function booth_entry(array $contest): void
+{
+    if (contest_phase($contest) === 'closed') {
+        json_response(['error' => 'Entries are closed for this contest.'], 409);
+    }
+    [$form, $errors] = entry_form_from_post();
+    if ($errors) {
+        json_response(['error' => reset($errors), 'field' => array_key_first($errors)], 422);
+    }
+    [$photo, $err] = save_entry_photo($contest, $_FILES['photo'] ?? []);
+    if ($err) {
+        json_response(['error' => $err], 422);
+    }
+    $entry = create_entry($contest, $form, $photo, 'booth');
+    json_response(['ok' => true, 'status' => $entry['status'], 'name' => $entry['name']], 201);
 }
 
 function booth_upload(array $contest): void

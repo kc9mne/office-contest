@@ -52,6 +52,25 @@ You can run it again safely. It won't overwrite your `.env` file or your data.
 sudo certbot --apache -d officevote.example.com
 ```
 
+### Office-only server (not reachable from the internet)
+
+If photos should stay inside the building, run the site on a small server on the office network instead. Let's Encrypt can still give it a trusted certificate by checking a DNS record instead of connecting to the server.
+
+1. **Point the name at the office address.** At your DNS provider, create an **A record** for `officevote.example.com` pointing at the server's office address (e.g. `10.20.105.50`). Ask IT to reserve that address so it never changes.
+2. **Run the setup script with `--dns-cert`:**
+
+   ```bash
+   sudo bash setup-ubuntu.sh --domain officevote.example.com --dns-cert
+   ```
+
+3. **Add the TXT record it shows you.** The script pauses with a record like `_acme-challenge.officevote` and a long code. Add it as a **TXT** record at your DNS provider (GoDaddy: **Domain → DNS → Add New Record**), wait a minute or two, then press Enter. You can delete the TXT record afterwards.
+
+You can set the server up anywhere (at home, on your desk) and move it to the office later. Just update the A record to its office address.
+
+- **Renewing:** the certificate lasts 90 days. To renew, run the same command again and add the new TXT record. The script checks the date and only asks when renewal is due.
+- **If phones can't reach it:** some office networks block public names that point at private addresses ("DNS rebinding protection"). If that happens, ask IT to add an internal DNS entry for the name. The certificate keeps working.
+- **What still leaves the building:** the photobooth sends photos to OpenAI to restyle them. Everything else stays on the server. The box needs normal outbound internet for the AI, web fonts and YouTube.
+
 ### 2. First-time setup
 
 Open `https://officevote.example.com`. You'll get the setup page:

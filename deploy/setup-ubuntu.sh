@@ -3,12 +3,14 @@
 # Safe to run more than once.
 #
 # Usage:
-#   sudo bash setup-ubuntu.sh --domain officevote.example.com            # production, gets an HTTPS certificate
+#   sudo bash setup-ubuntu.sh --domain officevote.example.com              # public server: certificate over HTTP (port 80 must be reachable)
+#   sudo bash setup-ubuntu.sh --domain officevote.example.com --dns-cert   # private/office server: certificate by adding a DNS TXT record
 #   sudo bash setup-ubuntu.sh --domain 172.20.174.66 --dev --from ~/office-contest   # local VM, self-signed HTTPS, code copied from a folder
 set -euo pipefail
 
 DOMAIN=""
 DEV=0
+DNS_CERT=0
 FROM=""
 APP_DIR="/var/www/officevote"
 REPO="https://github.com/kc9mne/office-contest.git"
@@ -17,6 +19,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --domain) DOMAIN="$2"; shift 2 ;;
     --dev) DEV=1; shift ;;
+    --dns-cert) DNS_CERT=1; shift ;;
     --app-dir) APP_DIR="$2"; shift 2 ;;
     --from) FROM="$2"; shift 2 ;;
     *) echo "Unknown option: $1" >&2; exit 1 ;;
@@ -90,6 +93,12 @@ fi
 
 echo "==> Apache site"
 a2enmod -q rewrite headers ssl expires >/dev/null
+CERT_DIR="/etc/letsencrypt/live/${DOMAIN}"
+if [[ -f "${CERT_DIR}/fullchain.pem" ]]; then
+  SSL_CERT="${CERT_DIR}/fullchain.pem"; SSL_KEY="${CERT_DIR}/privkey.pem"
+else
+  SSL_CERT="/etc/ssl/certs/ssl-cert-snakeoil.pem"; SSL_KEY="/etc/ssl/private/ssl-cert-snakeoil.key"
+fi
 cat > /etc/apache2/sites-available/officevote.conf <<CONF
 <VirtualHost *:80>
     ServerName ${DOMAIN}
@@ -102,8 +111,8 @@ cat > /etc/apache2/sites-available/officevote.conf <<CONF
     DocumentRoot ${APP_DIR}/public
 
     SSLEngine on
-    SSLCertificateFile /etc/ssl/certs/ssl-cert-snakeoil.pem
-    SSLCertificateKeyFile /etc/ssl/private/ssl-cert-snakeoil.key
+    SSLCertificateFile ${SSL_CERT}
+    SSLCertificateKeyFile ${SSL_KEY}
 
     <Directory ${APP_DIR}/public>
         AllowOverride All
@@ -140,7 +149,30 @@ a2dissite -q 000-default >/dev/null 2>&1 || true
 apache2ctl configtest
 systemctl reload apache2
 
-if [[ $DEV -eq 0 ]]; then
+if [[ $DEV -eq 0 && $DNS_CERT -eq 1 ]]; then
+  echo "==> HTTPS certificate (DNS check)"
+  if [[ -f "${CERT_DIR}/fullchain.pem" ]] && openssl x509 -checkend $((20 * 86400)) -noout -in "${CERT_DIR}/fullchain.pem" >/dev/null; then
+    echo "    Certificate already in place, valid until $(openssl x509 -enddate -noout -in "${CERT_DIR}/fullchain.pem" | cut -d= -f2)"
+  else
+    cat <<MSG
+
+    Let's Encrypt will show you a TXT record to add at your DNS provider (GoDaddy: Domain > DNS > Add New Record).
+      Type: TXT    Name: the part before .${DOMAIN#*.} (e.g. _acme-challenge.${DOMAIN%%.*})    Value: the long code it shows
+    Add it, wait a minute or two, then press Enter. You can delete the TXT record afterwards.
+
+MSG
+    if certbot certonly --manual --preferred-challenges dns -d "$DOMAIN" --agree-tos --register-unsafely-without-email; then
+      sed -i -e "s#SSLCertificateFile .*#SSLCertificateFile ${CERT_DIR}/fullchain.pem#" \
+             -e "s#SSLCertificateKeyFile .*#SSLCertificateKeyFile ${CERT_DIR}/privkey.pem#" /etc/apache2/sites-available/officevote.conf
+      apache2ctl configtest && systemctl reload apache2
+      echo "    Certificate installed, valid until $(openssl x509 -enddate -noout -in "${CERT_DIR}/fullchain.pem" | cut -d= -f2)"
+      echo "    It lasts 90 days. To renew, run this script again (with --dns-cert) and add the new TXT record."
+    else
+      echo "    The certificate step failed. The site still works with a self-signed certificate."
+      echo "    Run this script again with --dns-cert to retry."
+    fi
+  fi
+elif [[ $DEV -eq 0 ]]; then
   echo "==> HTTPS certificate"
   certbot --apache -d "$DOMAIN" --non-interactive --agree-tos --register-unsafely-without-email --redirect || \
     echo "    certbot failed. Check that ${DOMAIN} points at this server, then run: sudo certbot --apache -d ${DOMAIN}"

@@ -180,4 +180,6 @@ fi
 
 echo
 echo "Done. Open https://${DOMAIN}"
-[[ $DEV -eq 1 ]] && echo "(Dev mode uses a self-signed certificate, so your browser will warn once.)"
+if [[ $DEV -eq 1 ]]; then
+  echo "(Dev mode uses a self-signed certificate, so your browser will warn once.)"
+fi

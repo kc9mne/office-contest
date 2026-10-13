@@ -4,9 +4,9 @@ $cls = fn($k) => isset($errors[$k]) ? 'field has-error' : 'field';
 $modeDefaults = [];
 foreach (modes() as $key => $m) {
     $modeDefaults[$key] = ['title' => $m['title'], 'categories' => implode("\n", $m['categories']), 'event_name' => $m['event_name'], 'booth' => $m['booth'],
-        'styles' => array_map(fn($s) => ['name' => $s['name'], 'prompt' => $s['prompt']], $m['booth_styles'])];
+        'styles' => array_map(fn($s) => ['name' => $s['name'], 'prompt' => $s['prompt'], 'for' => $s['for'] ?? 'all'], $m['booth_styles'])];
 }
-$styleRows = array_pad(array_values($form['styles'] ?? []), BOOTH_MAX_STYLES, ['name' => '', 'prompt' => '']);
+$styleRows = array_pad(array_values($form['styles'] ?? []), BOOTH_MAX_STYLES, ['name' => '', 'prompt' => '', 'for' => 'all']);
 ?>
 <div class="spread">
   <div>
@@ -153,7 +153,7 @@ $styleRows = array_pad(array_values($form['styles'] ?? []), BOOTH_MAX_STYLES, ['
       </div>
       <div class="stack" style="gap:6px">
         <span class="label">Looks</span>
-        <span class="hint">Up to <?= BOOTH_MAX_STYLES ?>. The instructions are sent to the AI along with the photo. Leave a row empty to skip it. Write them for one person; for group photos the booth tells the AI to apply the look to everyone. Every request also tells the AI to keep people recognizable and office-appropriate.</span>
+        <span class="hint">Up to <?= BOOTH_MAX_STYLES ?>. The instructions are sent to the AI along with the photo. Leave a row empty to skip it. Write them for one person; for group photos the booth tells the AI to apply the look to everyone. Under each name, choose whether the look shows for everyone, just-me photos or group photos only. To vary a look, put choices in double brackets, like <code>[[a foggy graveyard|an abandoned carnival|a mad scientist's lab]]</code>: each photo gets one at random. Every request also tells the AI to keep people recognizable and office-appropriate.</span>
         <?= $err('booth_styles') ?>
       </div>
       <?php foreach ($styleRows as $i => $s): ?>
@@ -161,6 +161,11 @@ $styleRows = array_pad(array_values($form['styles'] ?? []), BOOTH_MAX_STYLES, ['
           <div class="field">
             <label for="style_name_<?= $i ?>">Look <?= $i + 1 ?> name</label>
             <input id="style_name_<?= $i ?>" name="style_name[]" value="<?= e($s['name']) ?>" maxlength="60" data-style-name="<?= $i ?>">
+            <select name="style_for[]" aria-label="Look <?= $i + 1 ?> shown for" data-style-for="<?= $i ?>">
+              <?php foreach (['all' => 'Everyone', 'single' => 'Just me only', 'group' => 'Group photos only'] as $v => $label): ?>
+                <option value="<?= $v ?>" <?= ($s['for'] ?? 'all') === $v ? 'selected' : '' ?>><?= $label ?></option>
+              <?php endforeach; ?>
+            </select>
           </div>
           <div class="field">
             <label for="style_prompt_<?= $i ?>">Instructions for the AI</label>

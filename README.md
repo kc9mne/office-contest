@@ -17,10 +17,10 @@ It also has an **AI photobooth**: a tablet or webcam PC that takes a photo and t
 
 **Photobooth (tablet or webcam PC)**
 - Just me or group photo, countdown, retake, pick a look, the restyled photo full size, QR code to save it to your phone.
-- **Photo strip:** four shots in a classic strip with your logo and the contest title; the first shot can get an AI look, or keep it real for free.
+- **Photo strip:** four real shots in a classic strip with your logo and the contest title. No AI, so it's free.
 - **Boomerang:** a two-second clip that loops forward and backward. No AI, so it's free.
 - Restyled by OpenAI's image API. The key stays on the server, encrypted. Demo mode works without a key.
-- Looks and AI instructions editable per contest; daily photo limit to cap costs.
+- Looks and AI instructions editable per contest, each for everyone, just-me or group photos only (Halloween includes a group-only Monster mash: everyone becomes a different monster in a random spooky scene, using `[[option|option]]` random picks in the instructions); daily photo limit to cap costs.
 
 **Contest modes:** Halloween, Holiday party and General. Each sets the colors, wording, starter categories and photobooth looks. Each contest can also have a page background: the built-in spooky Halloween scene, none, or your own image.
 

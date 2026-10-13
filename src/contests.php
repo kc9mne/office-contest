@@ -95,6 +95,7 @@ function contest_from_post(): array
     $styles = [];
     $names = (array) ($_POST['style_name'] ?? []);
     $prompts = (array) ($_POST['style_prompt'] ?? []);
+    $fors = (array) ($_POST['style_for'] ?? []);
     foreach ($names as $i => $name) {
         $name = mb_substr(trim((string) $name), 0, 60);
         $prompt = mb_substr(trim((string) ($prompts[$i] ?? '')), 0, 1000);
@@ -106,7 +107,8 @@ function contest_from_post(): array
             continue;
         }
         $d = $defaults[count($styles) % count($defaults)];
-        $styles[] = ['name' => $name, 'prompt' => $prompt, 'from' => $d['from'], 'to' => $d['to']];
+        $for = in_array($fors[$i] ?? '', ['single', 'group'], true) ? $fors[$i] : 'all';
+        $styles[] = ['name' => $name, 'prompt' => $prompt, 'for' => $for, 'from' => $d['from'], 'to' => $d['to']];
     }
     if ($data['booth_enabled'] && !$styles && !isset($errors['booth_styles'])) {
         $errors['booth_styles'] = 'Add at least one photobooth look, or turn the photobooth off.';

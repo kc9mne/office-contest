@@ -57,7 +57,7 @@ function booth_kiosk_page(?array $contest): void
         'base' => url(booth_base()),
         'csrf' => csrf_token(),
         'verb' => $contest ? mode($contest['mode'])['booth_verb'] : '',
-        'styles' => array_map(fn($s) => ['name' => $s['name'], 'from' => $s['from'], 'to' => $s['to']], $styles),
+        'styles' => array_map(fn($s) => ['name' => $s['name'], 'from' => $s['from'], 'to' => $s['to'], 'for' => $s['for'] ?? 'all'], $styles),
         'demo' => !booth_ai_configured(),
         'entries' => $contest && contest_phase($contest) !== 'closed',
         'noun' => $contest ? mode($contest['mode'])['noun'] : 'entry',
@@ -103,7 +103,7 @@ function booth_upload(array $contest): void
 function booth_run(array $contest, array $photo): void
 {
     $isStrip = $photo['kind'] === 'strip';
-    $style = booth_style_by_name($contest, (string) ($_POST['style'] ?? ''));
+    $style = $isStrip ? null : booth_style_by_name($contest, (string) ($_POST['style'] ?? '')); // strips are always real photos
     if (!$style && !$isStrip) {
         json_response(['error' => 'Pick a look first.'], 422);
     }
@@ -111,7 +111,7 @@ function booth_run(array $contest, array $photo): void
         json_response(booth_photo_json($photo), 202);
     }
     if ($style && booth_limit_reached($contest)) {
-        json_response(['error' => "The photobooth has reached today's AI photo limit. It resets at midnight. Try a photo strip with No AI, or a boomerang."], 429);
+        json_response(['error' => "The photobooth has reached today's AI photo limit. It resets at midnight. Photo strips and boomerangs still work."], 429);
     }
     session_write_close(); // don't block other requests from this kiosk while the AI works
     $photo = $isStrip ? booth_process_strip($photo, $contest, $style) : booth_process($photo, $contest, $style);

@@ -112,3 +112,4 @@ html.has-bg .kiosk { background: linear-gradient(180deg, rgb(14 10 18 / .55), rg
 .kbtn.mode b { font-size: 20px; }
 .kbtn.mode span { font-size: 13px; font-weight: 600; color: var(--stage-muted); }
 .cam #still.unmirror { transform: none; }
+.split figcaption:empty { display: none; }

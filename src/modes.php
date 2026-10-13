@@ -28,6 +28,8 @@ function modes(): array
                  'prompt' => 'Make this person a swashbuckling pirate captain with a tricorn hat, long coat and gold trim, on the deck of a ship under a stormy sky.'],
                 ['name' => 'Witch', 'from' => '#2B1840', 'to' => '#5E8C3A',
                  'prompt' => 'Make this person a classic witch with a tall pointed hat, a dark cloak and a bubbling cauldron, in a candle-lit cottage full of potion bottles.'],
+                ['name' => 'Monster mash', 'from' => '#1C1426', 'to' => '#8A5A22', 'for' => 'group',
+                 'prompt' => "Turn each person into a different scary creature, choosing from vampire, werewolf, mummy, zombie, witch, ghost, skeleton and Frankenstein's monster, whichever suits each person best, so no two people are the same creature. Put the whole group together in [[a candle-lit haunted mansion hall with cobwebs and old portraits|a foggy graveyard at midnight|an abandoned carnival at night with a broken carousel|a mad scientist's laboratory full of sparking machines|a dark enchanted forest with glowing eyes in the trees|a castle dungeon lit by torches|a pumpkin patch under a blood-red moon|a creaky old church with stained-glass windows]], arranged to fit this wide frame. Spooky but fun, not gory."],
                 ['name' => 'Werewolf', 'from' => '#2A2622', 'to' => '#7A6A58',
                  'prompt' => 'Turn this person into a friendly cartoon werewolf with furry ears and fuzzy cheeks, howling-moon night sky behind them. Spooky but fun, not scary.'],
             ],

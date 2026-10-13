@@ -16,9 +16,19 @@ const BOOTH_RULES_GROUP = 'Keep every person\'s face, expression, skin tone and 
 
 const BOOTH_KINDS = ['single', 'group'];
 
+/** "[[a|b|c]]" in a look's instructions becomes one of a, b or c, picked at random for each photo. */
+function prompt_pick_random(string $prompt): string
+{
+    return (string) preg_replace_callback('/\[\[(.+?)\]\]/s', function (array $m): string {
+        $options = array_values(array_filter(array_map('trim', explode('|', $m[1])), fn($o) => $o !== ''));
+        return $options ? $options[random_int(0, count($options) - 1)] : '';
+    }, $prompt);
+}
+
 /** The full instructions sent to the AI for a look. */
 function booth_prompt(array $style, string $kind): string
 {
+    $style['prompt'] = prompt_pick_random($style['prompt']);
     if ($kind === 'group') {
         return 'This photo shows a group of people. Apply the following to every person in the photo, '
             . 'and make the scene work for the whole group: ' . $style['prompt'] . ' ' . BOOTH_RULES_GROUP;
@@ -111,7 +121,7 @@ function openai_check_key(string $key): array
 /** Looks for a contest: its own list, or the mode's defaults. */
 function contest_booth_styles(array $contest): array
 {
-    $defaults = mode($contest['mode'])['booth_styles'];
+    $defaults = array_map(fn($s) => $s + ['for' => 'all'], mode($contest['mode'])['booth_styles']);
     $saved = json_decode((string) ($contest['booth_styles'] ?? ''), true);
     if (!is_array($saved) || !$saved) {
         return $defaults;
@@ -125,6 +135,7 @@ function contest_booth_styles(array $contest): array
         $styles[] = [
             'name' => (string) $s['name'],
             'prompt' => (string) $s['prompt'],
+            'for' => in_array($s['for'] ?? '', ['single', 'group'], true) ? $s['for'] : 'all',
             'from' => preg_match('/^#[0-9a-f]{6}$/i', (string) ($s['from'] ?? '')) ? $s['from'] : $fallback['from'],
             'to' => preg_match('/^#[0-9a-f]{6}$/i', (string) ($s['to'] ?? '')) ? $s['to'] : $fallback['to'],
         ];

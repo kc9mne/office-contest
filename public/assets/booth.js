@@ -1,5 +1,5 @@
 // Photobooth kiosk. Flow: attract -> countdown -> preview -> style -> working -> result -> done.
-// Modes: single / group photo (AI look), photo strip (4 shots, AI on the first is optional), boomerang (short clip, no AI).
+// Modes: single / group photo (AI look), photo strip (4 real shots), boomerang (short clip). Strips and boomerangs don't use the AI.
 (() => {
   const kiosk = document.getElementById('kiosk');
   const cfg = JSON.parse(kiosk.dataset.config || '{}');
@@ -71,7 +71,9 @@
   const isGroup = () => st.kind === 'group';
   const isWide = () => st.kind === 'group' || st.kind === 'strip';
   const canBoomerang = cfg.boomerang && typeof window.MediaRecorder === 'function';
-  const LOOK_NONE = -1; // photo strip without AI
+  const LOOK_NONE = -1; // photo strips: real photos, no AI
+  /** Looks for this kind of photo: everyone's, plus just-me-only or group-only ones. Keeps each look's index. */
+  const looksForKind = () => cfg.styles.map((x, i) => ({ ...x, i })).filter(x => !x.for || x.for === 'all' || x.for === (isGroup() ? 'group' : 'single'));
 
   /** Grab the centre of the video in the frame's shape: 2:3 portrait, or 3:2 for groups and strips. Same area the screen shows. */
   function capture() {
@@ -373,7 +375,7 @@
       afterVid.hidden = !st.photo.isVideo;
       if (st.photo.isVideo) { if (afterVid.getAttribute('src') !== st.photo.result) afterVid.src = st.photo.result; afterVid.play().catch(() => {}); }
       else { afterVid.pause(); afterImg.src = st.photo.result; }
-      $('afterCap').textContent = boom ? 'Boomerang' : st.kind === 'strip' ? 'Photo strip' : st.photo.style;
+      $('afterCap').textContent = boom ? 'Boomerang' : st.kind === 'strip' ? '' : st.photo.style;
     }
     side.innerHTML = views[s]();
     side.querySelector('[data-autofocus]')?.focus();
@@ -405,30 +407,29 @@
       <div class="kacts"><button type="button" class="kbtn ghost" data-act="retake">Retake</button><button type="button" class="kbtn primary" data-act="keep" data-autofocus>Looks good</button></div>
       <button type="button" class="kbtn link" data-act="reset">← Go back to the start</button>`,
     style: () => `
-      <h2>${st.kind === 'strip' ? 'Pick a look for shot 1' : 'Pick your look'}</h2>
-      ${st.kind === 'strip' ? '<p>The AI restyles your first shot; the other three stay real.</p>' : ''}
-      <div class="kstyles${cfg.styles.length + (st.kind === 'strip' ? 1 : 0) > 4 ? ' many' : ''}">${st.kind === 'strip' ? `<button type="button" class="kstyle" data-style="${LOOK_NONE}" aria-pressed="${st.style === LOOK_NONE}"><span class="sw" style="background:linear-gradient(160deg,#5B5468,#2C2338)"></span>No AI, keep it real</button>` : ''}${cfg.styles.map((x, i) => `<button type="button" class="kstyle" data-style="${i}" aria-pressed="${st.style === i}"><span class="sw" style="background:linear-gradient(160deg,${esc(x.from)},${esc(x.to)})"></span>${esc(x.name)}</button>`).join('')}</div>
+      <h2>Pick your look</h2>
+      <div class="kstyles${looksForKind().length > 4 ? ' many' : ''}">${looksForKind().map(x => `<button type="button" class="kstyle" data-style="${x.i}" aria-pressed="${st.style === x.i}"><span class="sw" style="background:linear-gradient(160deg,${esc(x.from)},${esc(x.to)})"></span>${esc(x.name)}</button>`).join('')}</div>
       <div class="field"><label for="kName">${isGroup() ? 'Names' : 'Your name'} <span class="hint">(optional, shown in the gallery)</span></label><input id="kName" maxlength="80" value="${esc(st.name)}" autocomplete="off"></div>
-      <button type="button" class="kbtn primary" data-act="make" ${st.style == null ? 'disabled' : ''}>${st.kind === 'strip' ? 'Make my strip' : esc(cfg.verb)}</button>
+      <button type="button" class="kbtn primary" data-act="make" ${st.style == null ? 'disabled' : ''}>${esc(cfg.verb)}</button>
       <button type="button" class="kbtn link" data-act="retake">Retake photo</button>`,
     working: () => `
       <h2>Working on it…</h2>
       <p>${st.kind === 'boomerang' ? 'Making your boomerang. Just a few seconds.'
-        : st.kind === 'strip' ? (st.style === LOOK_NONE ? 'Putting your strip together. Just a few seconds.' : `Turning shot 1 into <b>${esc(cfg.styles[st.style]?.name)}</b> and building your strip. This usually takes 15–60 seconds.`)
+        : st.kind === 'strip' ? 'Putting your strip together. Just a second.'
         : `Turning ${isGroup() ? 'your group' : 'you'} into: <b>${esc(cfg.styles[st.style]?.name)}</b>. This usually takes 15–60 seconds.`}</p>
       <div class="spin" role="status" aria-label="Working"></div>`,
     failed: () => `
       <h2>That didn't work</h2>
       <div class="kerr">${esc(st.error)}</div>
       <div class="kacts col">
-        ${st.kind === 'boomerang' && st.clip ? '<button type="button" class="kbtn primary" data-act="keep">Try again</button>' : st.blob ? '<button type="button" class="kbtn primary" data-act="restyle">Try again</button>' : ''}
+        ${(st.kind === 'boomerang' && st.clip) || (st.kind === 'strip' && st.frames.length === 4) ? '<button type="button" class="kbtn primary" data-act="keep">Try again</button>' : st.blob ? '<button type="button" class="kbtn primary" data-act="restyle">Try again</button>' : ''}
         <button type="button" class="kbtn ghost" data-act="reset">Start over</button>
       </div>`,
     result: () => `
-      <h2>Ta-da!</h2><p>${st.kind === 'boomerang' ? "Here's your boomerang!" : st.kind === 'strip' ? `Here's your photo strip${st.style === LOOK_NONE ? '' : ` with shot 1 as <b>${esc(st.photo.style)}</b>`}.` : `Here's ${isGroup() ? 'your group' : 'you'} as <b>${esc(st.photo.style)}</b>.`}</p>
+      <h2>Ta-da!</h2><p>${st.kind === 'boomerang' ? "Here's your boomerang!" : st.kind === 'strip' ? "Here's your photo strip!" : `Here's ${isGroup() ? 'your group' : 'you'} as <b>${esc(st.photo.style)}</b>.`}</p>
       <div class="kacts col">
         <button type="button" class="kbtn primary" data-act="gallery" data-autofocus>Add to gallery</button>
-        ${st.kind === 'boomerang' ? '<button type="button" class="kbtn ghost" data-act="retake">Do another one</button>' : `<button type="button" class="kbtn ghost" data-act="restyle">${st.kind === 'strip' ? 'Change shot 1\'s look' : 'Try another look'}</button>`}
+        ${st.kind === 'boomerang' || st.kind === 'strip' ? '<button type="button" class="kbtn ghost" data-act="retake">Do another one</button>' : '<button type="button" class="kbtn ghost" data-act="restyle">Try another look</button>'}
         <button type="button" class="kbtn link" data-act="reset">Start over</button>
       </div>`,
     entryForm: () => {
@@ -477,6 +478,7 @@
     else if (act === 'submitEntry') submitEntry();
     else if (act === 'retake') countdown();
     else if (act === 'keep' && st.kind === 'boomerang') makeBoomerang();
+    else if (act === 'keep' && st.kind === 'strip') { st.style = LOOK_NONE; makeIt(); }
     else if (act === 'keep' || act === 'restyle') go('style');
     else if (act === 'make') makeIt();
     else if (act === 'gallery') addToGallery();

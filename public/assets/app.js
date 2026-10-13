@@ -361,6 +361,8 @@
         if (nameEl.value.trim() === was.name && promptEl.value.trim() === was.prompt) {
           nameEl.value = toStyles[i]?.name || '';
           promptEl.value = toStyles[i]?.prompt || '';
+          const forEl = form.querySelector(`[data-style-for="${i}"]`);
+          if (forEl) forEl.value = toStyles[i]?.for || 'all';
         }
       });
       document.documentElement.dataset.mode = e.target.value;

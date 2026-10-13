@@ -262,7 +262,7 @@
     if (showSplit) {
       $('beforeImg').src = st.blobUrl;
       $('afterImg').src = st.photo.result;
-      $('afterCap').textContent = 'After · ' + st.photo.style;
+      $('afterCap').textContent = st.photo.style;
     }
     side.innerHTML = views[s]();
     side.querySelector('[data-autofocus]')?.focus();

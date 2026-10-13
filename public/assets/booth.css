@@ -29,10 +29,11 @@ body.booth-body .brand-name small { color: var(--stage-muted); }
 .cam { position: relative; height: min(100cqh, 150cqw); aspect-ratio: 2 / 3; border-radius: 18px; overflow: hidden; background: radial-gradient(ellipse at 50% 30%, #A2A6AD, var(--wall)); }
 .cam video, .cam #still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
 .cam.group { height: auto; width: min(100cqw, 150cqh); aspect-ratio: 3 / 2; }
-/* Group results: just the restyled photo, as big as the space allows (two wide photos don't fit) */
-.split.group { grid-template-columns: 1fr; place-items: center; }
-.split.group figure:first-child { display: none; }
-.split.group figure:last-child { aspect-ratio: 3 / 2; width: min(100cqw, 150cqh); height: auto; max-height: none; }
+/* Results show just the restyled photo, as big as the space allows: portrait for one person, landscape for groups */
+.split { grid-template-columns: 1fr !important; place-items: center; }
+.split figure:first-child { display: none; }
+.split figure:last-child { aspect-ratio: 2 / 3; height: min(100cqh, 150cqw); width: auto; max-height: none; max-width: none; }
+.split.group figure:last-child { aspect-ratio: 3 / 2; width: min(100cqw, 150cqh); height: auto; }
 .kchip { position: absolute; top: 12px; left: 12px; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 8px; background: rgb(0 0 0 / .55); color: #fff; }
 .kchip.rec::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #FF4A4A; margin-right: 6px; vertical-align: 1px; }
 .count { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--font-display); font-size: clamp(120px, 22vh, 240px); color: #fff; text-shadow: 0 4px 40px rgb(0 0 0 / .6); }

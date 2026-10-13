@@ -15,7 +15,7 @@ It also has an **AI photobooth**: a tablet or webcam PC that takes a photo and t
 - **Gallery:** contest entries, photobooth pictures, and videos (uploads up to 300 MB, or YouTube links).
 
 **Photobooth (tablet or webcam PC)**
-- Just me or group photo, countdown, retake, pick a look, before and after, QR code to save it to your phone.
+- Just me or group photo, countdown, retake, pick a look, the restyled photo full size, QR code to save it to your phone.
 - Restyled by OpenAI's image API. The key stays on the server, encrypted. Demo mode works without a key.
 - Looks and AI instructions editable per contest; daily photo limit to cap costs.
 

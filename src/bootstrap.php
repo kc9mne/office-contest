@@ -22,6 +22,7 @@ require APP_ROOT . '/src/qr.php';
 require APP_ROOT . '/src/entries.php';
 require APP_ROOT . '/src/voters.php';
 require APP_ROOT . '/src/videos.php';
+require APP_ROOT . '/src/booth_modes.php';
 
 if (PHP_SAPI !== 'cli') {
     $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';

@@ -1,4 +1,5 @@
 // Photobooth kiosk. Flow: attract -> countdown -> preview -> style -> working -> result -> done.
+// Modes: single / group photo (AI look), photo strip (4 shots, AI on the first is optional), boomerang (short clip, no AI).
 (() => {
   const kiosk = document.getElementById('kiosk');
   const cfg = JSON.parse(kiosk.dataset.config || '{}');
@@ -15,7 +16,7 @@
   const IDLE_RESET_MS = 90_000;
   const DONE_RESET_S = 45;
 
-  const st = { stage: 'attract', kind: 'single', flow: 'booth', entry: { name: '', department: '', title: '', consent: true }, blob: null, blobUrl: null, photo: null, style: null, name: '', error: '' };
+  const st = { stage: 'attract', kind: 'single', flow: 'booth', frames: [], shot: 0, clip: null, clipUrl: null, entry: { name: '', department: '', title: '', consent: true }, blob: null, blobUrl: null, photo: null, style: null, name: '', error: '' };
   let stream = null, timer = null, idleTimer = null, busy = false;
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -68,12 +69,15 @@
   $('camSelect').addEventListener('change', e => { store.set('booth.camera', e.target.value); startCamera(); });
 
   const isGroup = () => st.kind === 'group';
+  const isWide = () => st.kind === 'group' || st.kind === 'strip';
+  const canBoomerang = cfg.boomerang && typeof window.MediaRecorder === 'function';
+  const LOOK_NONE = -1; // photo strip without AI
 
-  /** Grab the centre of the video in the frame's shape: 2:3 portrait, or 3:2 for groups. Same area the screen shows. */
+  /** Grab the centre of the video in the frame's shape: 2:3 portrait, or 3:2 for groups and strips. Same area the screen shows. */
   function capture() {
     const vw = video.videoWidth, vh = video.videoHeight;
     if (!vw || !vh) return Promise.resolve(null);
-    const ratio = isGroup() ? 3 / 2 : 2 / 3;
+    const ratio = isWide() ? 3 / 2 : 2 / 3;
     let cw = vw, ch = vh;
     if (vw / vh > ratio) cw = Math.round(vh * ratio); else ch = Math.round(vw / ratio);
     const scale = Math.min(1, 1536 / Math.max(cw, ch));
@@ -85,19 +89,25 @@
   }
 
   // ---------- server ----------
+  const OFFLINE = 'No connection to the server. Check the Wi-Fi and try again.';
   async function freshToken() {
-    const r = await fetch(cfg.base + '/session', { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
-    cfg.csrf = (await r.json()).csrf;
+    try {
+      const r = await fetch(cfg.base + '/session', { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+      cfg.csrf = (await r.json()).csrf;
+      if (!cfg.csrf) throw new Error();
+    } catch (_) { throw new Error(OFFLINE); }
   }
   async function post(path, data, { timeoutMs = 30_000, retry = true } = {}) {
     const fd = new FormData();
-    Object.entries(data).forEach(([k, v]) => fd.append(k, v));
+    Object.entries(data).forEach(([k, v]) => Array.isArray(v) ? v.forEach(x => fd.append(k + '[]', x)) : fd.append(k, v));
     fd.append('_csrf', cfg.csrf);
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), timeoutMs);
     try {
-      const r = await fetch(cfg.base + path, { method: 'POST', body: fd, headers: { Accept: 'application/json' }, credentials: 'same-origin', signal: ctl.signal });
-      const json = await r.json().catch(() => ({ error: 'The server sent an unexpected reply.' }));
+      let r;
+      try { r = await fetch(cfg.base + path, { method: 'POST', body: fd, headers: { Accept: 'application/json' }, credentials: 'same-origin', signal: ctl.signal }); }
+      catch (err) { if (err.name === 'AbortError') throw err; throw new Error(OFFLINE); }
+      const json = await r.json().catch(() => ({ error: r.ok ? 'The server sent an unexpected reply.' : OFFLINE }));
       if (json.csrfExpired && retry) { await freshToken(); return post(path, data, { timeoutMs, retry: false }); }
       return { ok: r.ok, status: r.status, json };
     } finally { clearTimeout(t); }
@@ -123,41 +133,130 @@
   function reset() {
     clearInterval(timer);
     if (st.blobUrl) URL.revokeObjectURL(st.blobUrl);
-    Object.assign(st, { kind: 'single', flow: 'booth', entry: { name: '', department: '', title: '', consent: true }, blob: null, blobUrl: null, photo: null, style: null, name: '', error: '' });
+    if (st.clipUrl) URL.revokeObjectURL(st.clipUrl);
+    Object.assign(st, { kind: 'single', flow: 'booth', frames: [], shot: 0, clip: null, clipUrl: null, entry: { name: '', department: '', title: '', consent: true }, blob: null, blobUrl: null, photo: null, style: null, name: '', error: '' });
     go('attract');
   }
 
-  function countdown() {
-    let n = isGroup() ? 5 : 3;
-    go('countdown');
+  /** Show n, n-1 … 1 over the camera, then resolve. */
+  function runCountdown(n) {
     const count = $('count');
     const show = () => { count.textContent = n; count.classList.remove('tick'); void count.offsetWidth; count.classList.add('tick'); };
     count.hidden = false;
     show();
-    timer = setInterval(async () => {
-      n--;
-      if (n > 0) return show();
+    return new Promise(resolve => {
       clearInterval(timer);
-      count.hidden = true;
+      timer = setInterval(() => {
+        n--;
+        if (n > 0) return show();
+        clearInterval(timer);
+        count.hidden = true;
+        resolve();
+      }, 1000);
+    });
+  }
+  function flashFx() {
+    const flash = $('flash');
+    flash.hidden = false;
+    flash.style.animation = 'none'; void flash.offsetWidth; flash.style.animation = '';
+    setTimeout(() => { flash.hidden = true; }, 700);
+  }
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  async function countdown() {
+    if (st.kind === 'strip') return stripShots();
+    if (st.kind === 'boomerang') return recordBoomerang();
+    go('countdown');
+    await runCountdown(isGroup() ? 5 : 3);
+    const blob = await capture();
+    flashFx();
+    if (!blob) return go('attract', { error: 'The camera did not give a picture. Try again.' });
+    if (st.blobUrl) URL.revokeObjectURL(st.blobUrl);
+    go('preview', { blob, blobUrl: URL.createObjectURL(blob), photo: null, error: '' });
+  }
+
+  /** Photo strip: four shots, then a 2×2 preview. */
+  async function stripShots() {
+    st.frames = [];
+    st.photo = null;
+    for (let i = 0; i < 4; i++) {
+      go('countdown', { shot: i + 1 });
+      await runCountdown(i === 0 ? 3 : 2);
       const blob = await capture();
-      const flash = $('flash');
-      flash.hidden = false;
-      flash.style.animation = 'none'; void flash.offsetWidth; flash.style.animation = '';
-      setTimeout(() => { flash.hidden = true; }, 700);
+      flashFx();
       if (!blob) return go('attract', { error: 'The camera did not give a picture. Try again.' });
-      if (st.blobUrl) URL.revokeObjectURL(st.blobUrl);
-      go('preview', { blob, blobUrl: URL.createObjectURL(blob), photo: null, error: '' });
-    }, 1000);
+      st.frames.push(blob);
+      if (i < 3) await wait(500);
+    }
+    const preview = await stripPreview(st.frames);
+    if (st.blobUrl) URL.revokeObjectURL(st.blobUrl);
+    go('preview', { blob: preview, blobUrl: URL.createObjectURL(preview), error: '' });
+  }
+  async function stripPreview(blobs) {
+    const imgs = await Promise.all(blobs.map(b => createImageBitmap(b)));
+    const w = imgs[0].width, h = imgs[0].height, gap = Math.round(w * 0.02);
+    const c = document.createElement('canvas');
+    c.width = w * 2 + gap; c.height = h * 2 + gap;
+    const x = c.getContext('2d');
+    x.fillStyle = '#120D18'; x.fillRect(0, 0, c.width, c.height);
+    imgs.forEach((im, i) => x.drawImage(im, (i % 2) * (w + gap), Math.floor(i / 2) * (h + gap), w, h));
+    return new Promise(res => c.toBlob(res, 'image/jpeg', 0.85));
+  }
+
+  /** Boomerang: record about two seconds straight from the camera. */
+  async function recordBoomerang() {
+    st.photo = null;
+    go('countdown', { shot: 0 });
+    await runCountdown(3);
+    const type = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'].find(t => MediaRecorder.isTypeSupported(t)) || '';
+    let rec;
+    try { rec = new MediaRecorder(stream, type ? { mimeType: type, videoBitsPerSecond: 6_000_000 } : undefined); }
+    catch (_) { return go('attract', { error: "This browser can't record video, so boomerangs won't work here." }); }
+    const chunks = [];
+    rec.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+    const stopped = new Promise(r => { rec.onstop = r; });
+    go('recording');
+    rec.start();
+    await wait(2200);
+    rec.stop();
+    await stopped;
+    const clip = new Blob(chunks, { type: rec.mimeType || type || 'video/webm' });
+    if (!clip.size) return go('attract', { error: 'The camera did not record anything. Try again.' });
+    if (st.clipUrl) URL.revokeObjectURL(st.clipUrl);
+    go('preview', { clip, clipUrl: URL.createObjectURL(clip), error: '' });
+  }
+
+  async function makeBoomerang() {
+    if (busy || !st.clip) return;
+    busy = true;
+    go('working', { error: '' });
+    try {
+      await freshToken();
+      const ext = (st.clip.type || '').includes('mp4') ? 'mp4' : 'webm';
+      const res = await post('/boomerang', { clip: new File([st.clip], 'clip.' + ext, { type: st.clip.type || 'video/webm' }), name: st.name }, { timeoutMs: 90_000 });
+      if (!res.ok) throw new Error(res.json.error || 'The boomerang could not be made.');
+      st.photo = res.json;
+      go('result');
+    } catch (err) {
+      go('failed', { error: err.name === 'AbortError' ? 'The server took too long. Try again.' : err.message });
+    } finally {
+      busy = false;
+    }
   }
 
   async function makeIt() {
     if (busy || st.style == null) return;
     busy = true;
-    const style = cfg.styles[st.style].name;
+    const style = st.style === LOOK_NONE ? '' : cfg.styles[st.style].name;
     go('working', { error: '' });
     try {
       await freshToken();
-      if (!st.photo) {
+      if (!st.photo && st.kind === 'strip') {
+        const frames = st.frames.map((b, i) => new File([b], `shot${i + 1}.jpg`, { type: 'image/jpeg' }));
+        const up = await post('/strip', { frames, name: st.name }, { timeoutMs: 60_000 });
+        if (!up.ok) throw new Error(up.json.error || 'The photos could not be uploaded.');
+        st.photo = up.json;
+      } else if (!st.photo) {
         const up = await post('/photos', { photo: new File([st.blob], 'photo.jpg', { type: 'image/jpeg' }), name: st.name, kind: st.kind });
         if (!up.ok) throw new Error(up.json.error || 'The photo could not be uploaded.');
         st.photo = up.json;
@@ -252,17 +351,29 @@
     const showSplit = s === 'result' || s === 'done';
     $('cam').hidden = showSplit;
     $('split').hidden = !showSplit;
-    $('cam').classList.toggle('group', isGroup());
+    const boom = st.kind === 'boomerang';
+    $('cam').classList.toggle('group', isWide());
     $('split').classList.toggle('group', isGroup());
-    still.hidden = !['preview', 'style', 'working', 'failed', 'entryForm', 'entryDone'].includes(s);
+    $('split').classList.toggle('strip', st.kind === 'strip');
+    const showingTake = ['preview', 'style', 'working', 'failed', 'entryForm', 'entryDone'].includes(s);
+    // The take: a still (or the strip's 2×2 preview), or the boomerang clip looping.
+    const clipVid = $('clipVid');
+    still.hidden = !showingTake || boom;
     if (!still.hidden) still.src = st.blobUrl;
-    $('camChip').textContent = still.hidden ? 'Live camera' : 'Your photo';
-    $('camChip').classList.toggle('rec', still.hidden);
+    still.classList.toggle('unmirror', st.kind === 'strip'); // the 2×2 preview reads left to right
+    clipVid.hidden = !showingTake || !boom || !st.clipUrl;
+    if (!clipVid.hidden) { if (clipVid.src !== st.clipUrl) clipVid.src = st.clipUrl; clipVid.play().catch(() => {}); } else clipVid.pause();
+    const live = !showingTake;
+    $('camChip').textContent = s === 'recording' ? 'Recording' : live ? (s === 'countdown' && st.shot ? `Shot ${st.shot} of 4` : 'Live camera') : (boom ? 'Your clip' : st.kind === 'strip' ? 'Your shots' : 'Your photo');
+    $('camChip').classList.toggle('rec', live);
     $('shimmer').hidden = s !== 'working';
     if (showSplit) {
-      $('beforeImg').src = st.blobUrl;
-      $('afterImg').src = st.photo.result;
-      $('afterCap').textContent = st.photo.style;
+      const afterVid = $('afterVid'), afterImg = $('afterImg');
+      afterImg.hidden = !!st.photo.isVideo;
+      afterVid.hidden = !st.photo.isVideo;
+      if (st.photo.isVideo) { if (afterVid.getAttribute('src') !== st.photo.result) afterVid.src = st.photo.result; afterVid.play().catch(() => {}); }
+      else { afterVid.pause(); afterImg.src = st.photo.result; }
+      $('afterCap').textContent = boom ? 'Boomerang' : st.kind === 'strip' ? 'Photo strip' : st.photo.style;
     }
     side.innerHTML = views[s]();
     side.querySelector('[data-autofocus]')?.focus();
@@ -280,36 +391,44 @@
       <div class="kacts">
         <button type="button" class="kbtn primary huge" data-act="single" data-autofocus>Just me</button>
         <button type="button" class="kbtn primary huge" data-act="group">Group photo</button>
+        <button type="button" class="kbtn ghost mode" data-act="strip"><b>Photo strip</b><span>4 shots, classic strip</span></button>
+        ${canBoomerang ? '<button type="button" class="kbtn ghost mode" data-act="boomerang"><b>Boomerang</b><span>2-second loop</span></button>' : ''}
         ${cfg.entries ? `<button type="button" class="kbtn ghost wide" data-act="enter">Enter the ${esc(cfg.noun)} contest</button>` : ''}
       </div>
       ${fine}`,
-    countdown: () => st.flow === 'entry' ? `<h2>Show off that ${esc(cfg.noun)}!</h2><p>Stand back so the whole ${esc(cfg.noun)} is in the frame.</p>` : isGroup() ? `<h2>Squeeze in!</h2><p>Make sure everyone's face is in the frame.</p>` : `<h2>Get ready…</h2><p>Look at the camera and hold still.</p>`,
+    recording: () => `<h2>Go go go!</h2><p>Wave, spin, jump: it plays forward and backward on a loop.</p>`,
+    countdown: () => st.kind === 'strip' ? `<h2>Shot ${st.shot} of 4</h2><p>${['Big smile!', 'Now something silly!', 'Spooky face!', 'Last one: anything goes!'][st.shot - 1] || ''}</p>`
+      : st.kind === 'boomerang' ? `<h2>Get ready to move!</h2><p>When it says go, do something fun for two seconds.</p>`
+      : st.flow === 'entry' ? `<h2>Show off that ${esc(cfg.noun)}!</h2><p>Stand back so the whole ${esc(cfg.noun)} is in the frame.</p>` : isGroup() ? `<h2>Squeeze in!</h2><p>Make sure everyone's face is in the frame.</p>` : `<h2>Get ready…</h2><p>Look at the camera and hold still.</p>`,
     preview: () => `
-      <h2>How's that?</h2><p>Keep it or take another.</p>
+      <h2>How's that?</h2><p>${st.kind === 'strip' ? 'Keep these four or take them again.' : st.kind === 'boomerang' ? 'This is the raw clip. Keep it and we\'ll make it loop.' : 'Keep it or take another.'}</p>
       <div class="kacts"><button type="button" class="kbtn ghost" data-act="retake">Retake</button><button type="button" class="kbtn primary" data-act="keep" data-autofocus>Looks good</button></div>
       <button type="button" class="kbtn link" data-act="reset">← Go back to the start</button>`,
     style: () => `
-      <h2>Pick your look</h2>
-      <div class="kstyles${cfg.styles.length > 4 ? ' many' : ''}">${cfg.styles.map((x, i) => `<button type="button" class="kstyle" data-style="${i}" aria-pressed="${st.style === i}"><span class="sw" style="background:linear-gradient(160deg,${esc(x.from)},${esc(x.to)})"></span>${esc(x.name)}</button>`).join('')}</div>
+      <h2>${st.kind === 'strip' ? 'Pick a look for shot 1' : 'Pick your look'}</h2>
+      ${st.kind === 'strip' ? '<p>The AI restyles your first shot; the other three stay real.</p>' : ''}
+      <div class="kstyles${cfg.styles.length + (st.kind === 'strip' ? 1 : 0) > 4 ? ' many' : ''}">${st.kind === 'strip' ? `<button type="button" class="kstyle" data-style="${LOOK_NONE}" aria-pressed="${st.style === LOOK_NONE}"><span class="sw" style="background:linear-gradient(160deg,#5B5468,#2C2338)"></span>No AI, keep it real</button>` : ''}${cfg.styles.map((x, i) => `<button type="button" class="kstyle" data-style="${i}" aria-pressed="${st.style === i}"><span class="sw" style="background:linear-gradient(160deg,${esc(x.from)},${esc(x.to)})"></span>${esc(x.name)}</button>`).join('')}</div>
       <div class="field"><label for="kName">${isGroup() ? 'Names' : 'Your name'} <span class="hint">(optional, shown in the gallery)</span></label><input id="kName" maxlength="80" value="${esc(st.name)}" autocomplete="off"></div>
-      <button type="button" class="kbtn primary" data-act="make" ${st.style == null ? 'disabled' : ''}>${esc(cfg.verb)}</button>
+      <button type="button" class="kbtn primary" data-act="make" ${st.style == null ? 'disabled' : ''}>${st.kind === 'strip' ? 'Make my strip' : esc(cfg.verb)}</button>
       <button type="button" class="kbtn link" data-act="retake">Retake photo</button>`,
     working: () => `
       <h2>Working on it…</h2>
-      <p>Turning ${isGroup() ? 'your group' : 'you'} into: <b>${esc(cfg.styles[st.style]?.name)}</b>. This usually takes 15–60 seconds.</p>
+      <p>${st.kind === 'boomerang' ? 'Making your boomerang. Just a few seconds.'
+        : st.kind === 'strip' ? (st.style === LOOK_NONE ? 'Putting your strip together. Just a few seconds.' : `Turning shot 1 into <b>${esc(cfg.styles[st.style]?.name)}</b> and building your strip. This usually takes 15–60 seconds.`)
+        : `Turning ${isGroup() ? 'your group' : 'you'} into: <b>${esc(cfg.styles[st.style]?.name)}</b>. This usually takes 15–60 seconds.`}</p>
       <div class="spin" role="status" aria-label="Working"></div>`,
     failed: () => `
       <h2>That didn't work</h2>
       <div class="kerr">${esc(st.error)}</div>
       <div class="kacts col">
-        ${st.blob ? '<button type="button" class="kbtn primary" data-act="restyle">Try again</button>' : ''}
+        ${st.kind === 'boomerang' && st.clip ? '<button type="button" class="kbtn primary" data-act="keep">Try again</button>' : st.blob ? '<button type="button" class="kbtn primary" data-act="restyle">Try again</button>' : ''}
         <button type="button" class="kbtn ghost" data-act="reset">Start over</button>
       </div>`,
     result: () => `
-      <h2>Ta-da!</h2><p>Here's ${isGroup() ? 'your group' : 'you'} as <b>${esc(st.photo.style)}</b>.</p>
+      <h2>Ta-da!</h2><p>${st.kind === 'boomerang' ? "Here's your boomerang!" : st.kind === 'strip' ? `Here's your photo strip${st.style === LOOK_NONE ? '' : ` with shot 1 as <b>${esc(st.photo.style)}</b>`}.` : `Here's ${isGroup() ? 'your group' : 'you'} as <b>${esc(st.photo.style)}</b>.`}</p>
       <div class="kacts col">
         <button type="button" class="kbtn primary" data-act="gallery" data-autofocus>Add to gallery</button>
-        <button type="button" class="kbtn ghost" data-act="restyle">Try another look</button>
+        ${st.kind === 'boomerang' ? '<button type="button" class="kbtn ghost" data-act="retake">Do another one</button>' : `<button type="button" class="kbtn ghost" data-act="restyle">${st.kind === 'strip' ? 'Change shot 1\'s look' : 'Try another look'}</button>`}
         <button type="button" class="kbtn link" data-act="reset">Start over</button>
       </div>`,
     entryForm: () => {
@@ -337,7 +456,7 @@
     done: () => `
       <h2>You're in the gallery!</h2>
       <div class="kqr"><img src="${esc(cfg.qr)}?u=${encodeURIComponent(st.photo.shareUrl)}" alt="QR code linking to your photo">
-        <span>Scan to save your photo to your phone.<code>${esc(st.photo.shareUrl)}</code></span></div>
+        <span>Scan to save your ${st.kind === 'boomerang' ? 'boomerang' : st.kind === 'strip' ? 'strip' : 'photo'} to your phone.<code>${esc(st.photo.shareUrl)}</code></span></div>
       <button type="button" class="kbtn primary" data-act="reset" data-autofocus>Next person</button>
       <p class="kfine">Resetting in <span id="resetIn">${DONE_RESET_S}</span> seconds.</p>`,
   };
@@ -352,11 +471,12 @@
     }
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (!act) return;
-    if (act === 'single' || act === 'group') { st.kind = act; st.flow = 'booth'; render(); countdown(); }
+    if (['single', 'group', 'strip', 'boomerang'].includes(act)) { st.kind = act; st.flow = 'booth'; st.style = null; render(); countdown(); }
     else if (act === 'enter') { st.kind = 'single'; st.flow = 'entry'; render(); countdown(); }
     else if (act === 'keep' && st.flow === 'entry') go('entryForm', { error: '' });
     else if (act === 'submitEntry') submitEntry();
     else if (act === 'retake') countdown();
+    else if (act === 'keep' && st.kind === 'boomerang') makeBoomerang();
     else if (act === 'keep' || act === 'restyle') go('style');
     else if (act === 'make') makeIt();
     else if (act === 'gallery') addToGallery();

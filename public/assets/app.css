@@ -325,3 +325,8 @@ html.has-bg .hero h1, html.has-bg .page-title { text-shadow: 0 2px 18px rgb(0 0 
 .quiet-links a { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; color: var(--muted); opacity: .55; transition: opacity .15s; }
 .quiet-links a:hover, .quiet-links a:focus-visible { opacity: 1; color: var(--fg); }
 .quiet-links svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+
+/* Gallery: boomerangs play as looping videos; photo strips are tall, so show them whole */
+.gitem video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gitem.strip img { object-fit: contain; background: #120D18; }
+.admin-gallery .gitem video { aspect-ratio: 2 / 3; height: auto; }

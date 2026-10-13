@@ -51,7 +51,15 @@ function tv_data(?array $contest): array
     // Slideshow: photobooth pictures and entries, newest first.
     $slides = [];
     foreach (booth_gallery_photos($id, 60) as $p) {
-        $slides[] = ['img' => media_url($p['result_path']), 'name' => $p['name'] !== '' ? $p['name'] : 'Photobooth', 'caption' => $p['style'], 'wide' => $p['kind'] === 'group', 'at' => $p['finished_at'] ?? $p['created_at']];
+        $isVideo = booth_photo_is_video($p);
+        $slides[] = [
+            'img' => media_url($isVideo ? $p['original_path'] : $p['result_path']),
+            'video' => $isVideo ? media_url($p['result_path']) : null,
+            'name' => $p['name'] !== '' ? $p['name'] : 'Photobooth',
+            'caption' => $p['kind'] === 'strip' ? 'Photo strip' . ($p['style'] !== 'No AI' ? ' · ' . $p['style'] : '') : $p['style'],
+            'wide' => $p['kind'] === 'group',
+            'at' => $p['finished_at'] ?? $p['created_at'],
+        ];
     }
     foreach ($standings['entries'] as $e) {
         $slides[] = ['img' => media_url($e['photo_path']), 'name' => $e['name'], 'caption' => $e['title'] !== '' ? $e['title'] : $e['department'], 'wide' => false, 'at' => $e['created_at']];

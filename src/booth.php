@@ -401,6 +401,7 @@ function booth_photo_json(array $photo): array
         'error' => $photo['error'],
         'original' => media_url($photo['original_path']),
         'result' => $photo['result_path'] ? media_url($photo['result_path']) : null,
+        'isVideo' => ($photo['kind'] ?? '') === 'boomerang',
         'inGallery' => (bool) $photo['in_gallery'],
     ];
 }
@@ -429,5 +430,8 @@ function booth_photo_delete(array $photo): void
 {
     delete_media($photo['original_path']);
     delete_media($photo['result_path']);
+    foreach (json_decode((string) ($photo['frames'] ?? ''), true) ?: [] as $frame) {
+        delete_media($frame);
+    }
     db_run('DELETE FROM booth_photos WHERE id = ?', [$photo['id']]);
 }

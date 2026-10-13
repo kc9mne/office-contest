@@ -74,10 +74,16 @@
     const s = slides[slideIndex];
     const back = figs[1 - front];
     const img = back.querySelector('img');
+    const vid = back.querySelector('video');
     const swap = () => {
       back.querySelector('figcaption').innerHTML = `${esc(s.name)}${s.caption ? `<small>${esc(s.caption)}</small>` : ''}`;
+      // Boomerangs: show the poster at once, then play the loop over it.
+      if (s.video) { vid.src = s.video; vid.hidden = false; vid.play().catch(() => {}); }
+      else { vid.pause(); vid.removeAttribute('src'); vid.hidden = true; }
       back.classList.add('on');
-      figs[front].classList.remove('on');
+      const old = figs[front];
+      old.classList.remove('on');
+      setTimeout(() => { if (!old.classList.contains('on')) old.querySelector('video').pause(); }, 1300);
       front = 1 - front;
     };
     img.onload = swap;

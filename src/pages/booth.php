@@ -23,6 +23,13 @@ function booth_route(string $sub): void
 
     if ($sub === '/entry' && is_post()) {
         booth_entry($contest);
+    } elseif ($sub === '/strip' && is_post()) {
+        [$photo, $error] = booth_save_strip($contest, $_FILES['frames'] ?? [], post_str('name', 80));
+        $error ? json_response(['error' => $error], 422) : json_response(booth_photo_json($photo), 201);
+    } elseif ($sub === '/boomerang' && is_post()) {
+        session_write_close();
+        [$photo, $error] = booth_save_boomerang($contest, $_FILES['clip'] ?? [], post_str('name', 80));
+        $error ? json_response(['error' => $error], 422) : json_response(booth_photo_json($photo), 201);
     } elseif ($sub === '/photos' && is_post()) {
         booth_upload($contest);
     } elseif (preg_match('#^/photos/(\d+)(/(process|gallery))?$#', $sub, $m)) {
@@ -57,6 +64,7 @@ function booth_kiosk_page(?array $contest): void
         'departments' => site_departments(),
         'approval' => $contest ? (bool) $contest['require_approval'] : false,
         'voteUrl' => site_origin() . url('/vote'),
+        'boomerang' => ffmpeg_path() !== null,
     ];
     $state = !$contest ? 'no_contest' : (!$contest['booth_enabled'] ? 'off' : 'ready');
     require APP_ROOT . '/src/views/booth.php';
@@ -94,18 +102,19 @@ function booth_upload(array $contest): void
 
 function booth_run(array $contest, array $photo): void
 {
+    $isStrip = $photo['kind'] === 'strip';
     $style = booth_style_by_name($contest, (string) ($_POST['style'] ?? ''));
-    if (!$style) {
+    if (!$style && !$isStrip) {
         json_response(['error' => 'Pick a look first.'], 422);
     }
     if ($photo['status'] === 'processing') {
         json_response(booth_photo_json($photo), 202);
     }
-    if (booth_limit_reached($contest)) {
-        json_response(['error' => "The photobooth has reached today's photo limit. It resets at midnight."], 429);
+    if ($style && booth_limit_reached($contest)) {
+        json_response(['error' => "The photobooth has reached today's AI photo limit. It resets at midnight. Try a photo strip with No AI, or a boomerang."], 429);
     }
     session_write_close(); // don't block other requests from this kiosk while the AI works
-    $photo = booth_process($photo, $contest, $style);
+    $photo = $isStrip ? booth_process_strip($photo, $contest, $style) : booth_process($photo, $contest, $style);
     json_response(booth_photo_json($photo), $photo['status'] === 'done' ? 200 : 502);
 }
 

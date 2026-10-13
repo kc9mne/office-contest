@@ -17,6 +17,8 @@ It also has an **AI photobooth**: a tablet or webcam PC that takes a photo and t
 
 **Photobooth (tablet or webcam PC)**
 - Just me or group photo, countdown, retake, pick a look, the restyled photo full size, QR code to save it to your phone.
+- **Photo strip:** four shots in a classic strip with your logo and the contest title; the first shot can get an AI look, or keep it real for free.
+- **Boomerang:** a two-second clip that loops forward and backward. No AI, so it's free.
 - Restyled by OpenAI's image API. The key stays on the server, encrypted. Demo mode works without a key.
 - Looks and AI instructions editable per contest; daily photo limit to cap costs.
 

@@ -32,7 +32,7 @@ echo "==> Installing packages"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -q
 # Unversioned PHP packages pull in whatever PHP this Ubuntu release ships (8.5 on 26.04, 8.3 on 24.04).
-apt-get install -yq apache2 mariadb-server ffmpeg git unzip openssl ssl-cert \
+apt-get install -yq apache2 mariadb-server ffmpeg git unzip openssl ssl-cert fonts-dejavu-core \
   php libapache2-mod-php php-mysql php-sqlite3 php-gd php-mbstring \
   php-curl php-xml php-zip php-intl
 PHP_VER="$(php -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')"

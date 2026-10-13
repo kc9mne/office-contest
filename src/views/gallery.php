@@ -26,8 +26,8 @@
     <h2 class="eyebrow" style="margin-bottom:10px">Photobooth</h2>
     <div class="gallery">
       <?php foreach ($photos as $p): ?>
-        <a class="gitem<?= $p['kind'] === 'group' ? ' wide' : '' ?>" href="<?= e(url('/p/' . $p['code'])) ?>">
-          <img src="<?= e(media_url($p['result_path'])) ?>" alt="<?= e(($p['name'] !== '' ? $p['name'] . ' as ' : '') . $p['style']) ?>" loading="lazy">
+        <a class="gitem<?= $p['kind'] === 'group' ? ' wide' : '' ?><?= $p['kind'] === 'strip' ? ' strip' : '' ?>" href="<?= e(url('/p/' . $p['code'])) ?>">
+          <?php require APP_ROOT . '/src/views/partials/booth_media.php'; ?>
           <span class="gcap"><?= e($p['name'] !== '' ? $p['name'] : 'Photobooth') ?><small><?= e($p['style']) ?></small></span>
         </a>
       <?php endforeach; ?>

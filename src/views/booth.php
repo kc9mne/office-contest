@@ -14,9 +14,9 @@ $mode = $contest['mode'] ?? 'general';
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Figtree:wght@400;500;600;700;800&display=swap">
-<link rel="stylesheet" href="<?= e(url('/assets/app.css')) ?>?v=10">
-<link rel="stylesheet" href="<?= e(url('/assets/booth.css')) ?>?v=10">
-<script src="<?= e(url('/assets/booth.js')) ?>?v=10" defer></script>
+<link rel="stylesheet" href="<?= e(url('/assets/app.css')) ?>?v=12">
+<link rel="stylesheet" href="<?= e(url('/assets/booth.css')) ?>?v=12">
+<script src="<?= e(url('/assets/booth.js')) ?>?v=12" defer></script>
 </head>
 <body class="booth-body">
 <div class="kiosk" id="kiosk" data-state="<?= e($state) ?>" data-config="<?= e(json_encode($config)) ?>">
@@ -49,6 +49,7 @@ $mode = $contest['mode'] ?? 'general';
         <div class="cam" id="cam">
           <video id="video" autoplay playsinline muted></video>
           <img id="still" alt="Your photo" hidden>
+          <video id="clipVid" muted loop playsinline hidden></video>
           <span class="kchip rec" id="camChip">Live camera</span>
           <div class="count" id="count" aria-live="assertive" hidden></div>
           <div class="shimmer" id="shimmer" hidden></div>
@@ -61,7 +62,7 @@ $mode = $contest['mode'] ?? 'general';
         </div>
         <div class="split" id="split" hidden>
           <figure><img id="beforeImg" alt="Before"><figcaption>Before</figcaption></figure>
-          <figure><img id="afterImg" alt="After"><figcaption id="afterCap">After</figcaption></figure>
+          <figure><img id="afterImg" alt="Your photo"><video id="afterVid" muted loop playsinline autoplay hidden></video><figcaption id="afterCap"></figcaption></figure>
         </div>
       </div>
       <div class="kside" id="side" aria-live="polite"></div>

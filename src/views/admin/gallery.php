@@ -14,7 +14,7 @@
     <?php foreach ($photos as $p): ?>
       <div class="gadmin<?= $p['kind'] === 'group' ? ' wide' : '' ?>" style="<?= $p['kind'] === 'group' ? 'grid-column: span 2' : '' ?>">
         <a class="gitem<?= $p['kind'] === 'group' ? ' wide' : '' ?><?= $p['in_gallery'] ? '' : ' hidden-photo' ?>" href="<?= e(media_url($p['result_path'])) ?>" target="_blank" rel="noopener">
-          <img src="<?= e(media_url($p['result_path'])) ?>" alt="<?= e($p['style']) ?>" loading="lazy">
+          <?php require APP_ROOT . '/src/views/partials/booth_media.php'; ?>
           <span class="gcap"><?= e($p['name'] !== '' ? $p['name'] : 'No name') ?><small><?= e($p['style']) ?> · <?= e(utc_to_local($p['created_at'], 'D g:i A')) ?></small></span>
         </a>
         <div class="acts">

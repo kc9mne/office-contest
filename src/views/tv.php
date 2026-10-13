@@ -15,7 +15,7 @@ $logo = logo_url();
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Figtree:wght@400;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
 <link rel="stylesheet" href="<?= e(url('/assets/app.css')) ?>?v=12">
-<link rel="stylesheet" href="<?= e(url('/assets/tv.css')) ?>?v=1">
+<link rel="stylesheet" href="<?= e(url('/assets/tv.css')) ?>?v=2">
 <script src="<?= e(url('/assets/tv.js')) ?>?v=1" defer></script>
 </head>
 <body class="tv-body">

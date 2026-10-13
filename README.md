@@ -13,6 +13,7 @@ It also has an **AI photobooth**: a tablet or webcam PC that takes a photo and t
 - **Enter:** take a photo, add your name, department and costume name.
 - **Vote:** type your name once, pick one favorite per category, and change your mind until voting closes.
 - **Gallery:** contest entries, photobooth pictures, and videos (uploads up to 300 MB, or YouTube links).
+- **TV display** (`/tv`): full-screen countdown, leaderboard and a slideshow of entries and booth photos for the office TVs. Updates itself.
 
 **Photobooth (tablet or webcam PC)**
 - Just me or group photo, countdown, retake, pick a look, the restyled photo full size, QR code to save it to your phone.

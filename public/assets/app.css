@@ -319,3 +319,9 @@ html.has-bg .hero h1, html.has-bg .page-title { text-shadow: 0 2px 18px rgb(0 0 
 @media (orientation: portrait) {
   html.has-bg body::before { background-position: center, 82% center; }
 }
+
+/* Home: small icon links at the bottom (TV display, photobooth) for people who know to look */
+.quiet-links { display: flex; justify-content: center; gap: 14px; padding-top: 18px; }
+.quiet-links a { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 9px; color: var(--muted); opacity: .55; transition: opacity .15s; }
+.quiet-links a:hover, .quiet-links a:focus-visible { opacity: 1; color: var(--fg); }
+.quiet-links svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; }

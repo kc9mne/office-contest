@@ -105,4 +105,14 @@
       <a class="card home-link" href="<?= e(url('/videos')) ?>" style="display:grid; gap:2px"><span class="eyebrow"><?= e($contest['event_name']) ?></span><span><?= e($contest['event_details'] !== '' ? $contest['event_details'] : 'Details coming soon') ?></span><span class="muted"><?= $videoCount ? 'Watch ' . $videoCount . ' video' . ($videoCount === 1 ? '' : 's') . ' →' : 'Videos will be posted here →' ?></span></a>
     <?php endif; ?>
   </nav>
+  <footer class="quiet-links">
+    <a href="<?= e(url('/tv')) ?>" aria-label="TV display" title="TV display">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    </a>
+    <?php if ($contest['booth_enabled']): ?>
+    <a href="<?= e(url(booth_base())) ?>" aria-label="Photobooth" title="Photobooth">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    </a>
+    <?php endif; ?>
+  </footer>
 <?php endif; ?>

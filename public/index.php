@@ -6,6 +6,7 @@ require APP_ROOT . '/src/pages/public.php';
 require APP_ROOT . '/src/pages/setup.php';
 require APP_ROOT . '/src/pages/admin.php';
 require APP_ROOT . '/src/pages/booth.php';
+require APP_ROOT . '/src/pages/tv.php';
 
 csrf_check();
 $path = request_path();
@@ -33,6 +34,10 @@ if ($path === '/') {
     page_photo($m[1]);
 } elseif (preg_match('#^/media/(.+)$#', $path, $m)) {
     page_media($m[1]);
+} elseif ($path === '/tv') {
+    page_tv();
+} elseif ($path === '/tv/data') {
+    page_tv_data();
 } elseif ($path === '/gallery') {
     page_gallery();
 } elseif ($path === '/videos') {

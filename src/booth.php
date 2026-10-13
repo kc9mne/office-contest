@@ -11,7 +11,8 @@ const BOOTH_RULES_SINGLE = 'Keep the person\'s face, expression, skin tone and p
     . 'Family-friendly and office-appropriate: no gore, nudity, weapons or text. Portrait orientation, the person centered.';
 const BOOTH_RULES_GROUP = 'Keep every person\'s face, expression, skin tone and pose clearly recognizable. '
     . 'Keep everyone\'s glasses, facial hair, hairstyles and visible accessories; do not remove or replace them. '
-    . 'Keep exactly the same number of people in the same positions; do not add, remove or merge anyone. '
+    . 'Keep exactly the same number of people in the same positions; do not add, remove or merge anyone, and add no extra people or creatures in the background. '
+    . 'Every person must be transformed by the look, including anyone in the middle or front; nobody stays looking ordinary. '
     . 'Family-friendly and office-appropriate: no gore, nudity, weapons or text. Landscape orientation.';
 
 const BOOTH_KINDS = ['single', 'group'];
@@ -30,8 +31,8 @@ function booth_prompt(array $style, string $kind): string
 {
     $style['prompt'] = prompt_pick_random($style['prompt']);
     if ($kind === 'group') {
-        return 'This photo shows a group of people. Apply the following to every person in the photo, '
-            . 'and make the scene work for the whole group: ' . $style['prompt'] . ' ' . BOOTH_RULES_GROUP;
+        return 'This is a group photo; it may have one person or several. Apply the following to every person who is actually in the photo, '
+            . 'and make the scene work for them: ' . $style['prompt'] . ' ' . BOOTH_RULES_GROUP;
     }
     return $style['prompt'] . ' ' . BOOTH_RULES_SINGLE;
 }

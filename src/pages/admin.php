@@ -255,6 +255,7 @@ function admin_entries(): void
     }
     view('admin/entries', [
         'title' => 'Entries',
+        'ballots' => $contest ? entry_ballots($contest) : [],
         'contest' => $contest,
         'entries' => $contest ? contest_entries((int) $contest['id'], null) : [],
         'standings' => $contest ? contest_standings($contest) : null,

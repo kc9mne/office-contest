@@ -198,6 +198,13 @@
     toastEl.textContent = msg; toastEl.hidden = false;
     clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.hidden = true; }, 2800);
   };
+  // Admin entries: the "who voted" panel closes with its button or a tap outside.
+  document.addEventListener('click', e => {
+    const close = e.target.closest('[data-close-details]');
+    if (close) { close.closest('details').open = false; return; }
+    document.querySelectorAll('details.vote-list[open]').forEach(d => { if (!d.querySelector('.vote-pop').contains(e.target) && !d.querySelector('summary').contains(e.target)) d.open = false; });
+  });
+
   /** Last category voted: say so clearly, then go back to the main page. */
   const allDone = total => {
     const home = location.href.replace(/[?#].*$/, '').replace(/\/vote(\/.*)?$/, '') + '/';

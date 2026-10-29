@@ -339,3 +339,14 @@ html.has-bg .hero h1, html.has-bg .page-title { text-shadow: 0 2px 18px rgb(0 0 
 .done-card .btn { margin-top: 6px; width: 100%; }
 .done-mark { width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-size: 34px; font-weight: 800; background: var(--accent); color: var(--accent-fg, #fff); }
 @keyframes done-fade { from { opacity: 0; } }
+
+/* Admin entries: click a vote total to see who voted */
+.votes-cell { position: relative; }
+.vote-list summary { cursor: pointer; list-style: none; display: inline-flex; gap: 6px; align-items: center; text-decoration: underline dotted; text-underline-offset: 3px; }
+.vote-list summary::-webkit-details-marker { display: none; }
+.vote-list[open] summary::after { content: ""; position: fixed; inset: 0; z-index: 19; background: rgb(0 0 0 / .4); cursor: default; }
+.vote-pop { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 20; width: min(440px, calc(100vw - 32px)); max-height: 75vh; overflow: auto; background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 14px 40px rgb(0 0 0 / .25); padding: 12px 14px; font-family: var(--font-body); font-size: 14px; white-space: normal; overflow-wrap: normal; text-align: left; display: grid; gap: 8px; }
+.vote-pop .chip { white-space: normal; }
+.vote-pop ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.vote-pop li { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 14px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.vote-pop li.voided a { text-decoration: line-through; }

@@ -180,3 +180,23 @@ function send_csv(string $filename, array $header, array $rows): never
     fclose($out);
     exit;
 }
+
+/** entry_id => the votes it got (voter, category, time, flags), for checking totals in Admin. */
+function entry_ballots(array $contest): array
+{
+    $voters = array_column(contest_voters($contest), null, 'id');
+    $rows = db_all(
+        'SELECT v.entry_id, v.voter_id, c.name AS category, v.updated_at
+         FROM votes v JOIN categories c ON c.id = v.category_id
+         WHERE v.contest_id = ? ORDER BY c.sort_order, v.updated_at',
+        [(int) $contest['id']]
+    );
+    $out = [];
+    foreach ($rows as $r) {
+        $voter = $voters[(int) $r['voter_id']] ?? null;
+        if ($voter) {
+            $out[(int) $r['entry_id']][] = ['voter' => $voter, 'category' => $r['category'], 'at' => $r['updated_at']];
+        }
+    }
+    return $out;
+}

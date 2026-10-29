@@ -68,7 +68,27 @@ if ($standings) {
                 </div>
               </td>
               <td><span class="chip <?= $en['status'] === 'approved' ? 'ok' : ($en['status'] === 'pending' ? 'active' : '') ?>"><?= e(['approved' => 'Showing', 'pending' => 'Waiting', 'rejected' => 'Hidden'][$en['status']] ?? $en['status']) ?></span></td>
-              <td class="mono"><?= $totals[(int) $en['id']] ?? 0 ?></td>
+              <td class="mono votes-cell"><?php $bl = $ballots[(int) $en['id']] ?? []; $n = $totals[(int) $en['id']] ?? 0; ?>
+                <?php if (!$bl): ?><?= $n ?><?php else: ?>
+                  <details class="vote-list">
+                    <summary title="See who voted"><?= $n ?><?= count(array_filter($bl, fn($b) => in_array($b['voter']['flag_level'], ['high', 'medium'], true))) ? ' <span class="chip flag-medium">check</span>' : '' ?></summary>
+                    <div class="vote-pop">
+                      <div class="spread"><b><?= e($en['name']) ?>: <?= count($bl) ?> vote<?= count($bl) === 1 ? '' : 's' ?></b><button type="button" class="btn small ghost" data-close-details>Close</button></div>
+                      <ul>
+                        <?php foreach ($bl as $b): $vt = $b['voter']; ?>
+                          <li class="<?= $vt['voided'] ? 'voided' : '' ?>">
+                            <a href="<?= e(admin_url('voters') . (function_exists('admin_cq') ? admin_cq($contest) : '')) ?>#voter-<?= (int) $vt['id'] ?>"><?= e($vt['name']) ?></a>
+                            <span class="muted"><?= e($b['category']) ?> · <?= e(utc_to_local($b['at'], 'g:i A')) ?></span>
+                            <?php if ($vt['voided']): ?><span class="chip">Not counted</span><?php endif; ?>
+                            <?php foreach ($vt['flags'] as [$level, $text]): if ($level === 'info') continue; ?><span class="chip flag-<?= e($level) ?>"><?= e($text) ?></span><?php endforeach; ?>
+                          </li>
+                        <?php endforeach; ?>
+                      </ul>
+                      <span class="small muted">Tap a name to see that voter. Flags come from the Voters page.</span>
+                    </div>
+                  </details>
+                <?php endif; ?>
+              </td>
               <td>
                 <form class="acts" method="post" data-confirm-delete="Delete <?= e($en['name']) ?>'s entry and all its votes? This can't be undone.">
                   <?= csrf_field() ?><input type="hidden" name="entry_id" value="<?= (int) $en['id'] ?>">

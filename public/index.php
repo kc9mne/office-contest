@@ -40,6 +40,8 @@ if ($path === '/') {
     page_tv_data();
 } elseif ($path === '/gallery') {
     page_gallery();
+} elseif ($path === '/gallery/add') {
+    page_gallery_add();
 } elseif ($path === '/videos') {
     page_videos();
 } elseif ($path === '/join') {

@@ -15,7 +15,7 @@
       <div class="gadmin<?= $p['kind'] === 'group' ? ' wide' : '' ?>" style="<?= $p['kind'] === 'group' ? 'grid-column: span 2' : '' ?>">
         <a class="gitem<?= $p['kind'] === 'group' ? ' wide' : '' ?><?= $p['in_gallery'] ? '' : ' hidden-photo' ?>" href="<?= e(media_url($p['result_path'])) ?>" target="_blank" rel="noopener">
           <?php require APP_ROOT . '/src/views/partials/booth_media.php'; ?>
-          <span class="gcap"><?= e($p['name'] !== '' ? $p['name'] : 'No name') ?><small><?= e($p['style']) ?> · <?= e(utc_to_local($p['created_at'], 'D g:i A')) ?></small></span>
+          <span class="gcap"><?= e($p['name'] !== '' ? $p['name'] : 'No name') ?><small><?= e($p['kind'] === 'upload' ? 'Shared from a phone' : ($p['style'] !== '' ? $p['style'] : 'No changes')) ?> · <?= e(utc_to_local($p['created_at'], 'D g:i A')) ?></small></span>
         </a>
         <div class="acts">
           <form class="inline" method="post"><?= csrf_field() ?><input type="hidden" name="photo_id" value="<?= (int) $p['id'] ?>">

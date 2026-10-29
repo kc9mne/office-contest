@@ -32,6 +32,54 @@ function page_gallery(): void
     ]);
 }
 
+/** POST /gallery/add: people add their own photos to the gallery. */
+function page_gallery_add(): void
+{
+    $contest = active_contest();
+    if (!$contest || !is_post()) {
+        redirect('/gallery');
+    }
+    $files = uploaded_files('photos');
+    if (!$files) {
+        flash('Pick at least one photo first.');
+        redirect('/gallery#add');
+    }
+    if (!post_bool('consent')) {
+        flash('Tick the box to say everyone in the photos is OK with them being shared.');
+        redirect('/gallery#add');
+    }
+    $used = (int) ($_SESSION['gallery_uploads'] ?? 0);
+    $room = max(0, GALLERY_UPLOADS_PER_SESSION - $used);
+    if ($room === 0) {
+        flash('This phone has added a lot of photos already. Ask an organizer if you have more to share.');
+        redirect('/gallery');
+    }
+    $name = post_str('name', 80);
+    $added = 0;
+    $problems = [];
+    foreach (array_slice($files, 0, min(GALLERY_UPLOADS_PER_POST, $room)) as $file) {
+        [$photo, $err] = gallery_upload($contest, $file, $name);
+        if ($photo) {
+            $added++;
+        } else {
+            $problems[] = $err;
+        }
+    }
+    $_SESSION['gallery_uploads'] = $used + $added;
+    $skipped = count($files) - $added - count($problems);
+    $msg = $added
+        ? ($added === 1 ? 'Photo added' : "{$added} photos added") . ($contest['require_approval'] ? '. They show up once an organizer approves them.' : ' to the gallery. Thanks!')
+        : 'No photos were added.';
+    if ($problems) {
+        $msg .= ' ' . count($problems) . ' could not be used: ' . $problems[0];
+    }
+    if ($skipped > 0) {
+        $msg .= " {$skipped} more were skipped; add up to " . GALLERY_UPLOADS_PER_POST . ' at a time.';
+    }
+    flash($msg);
+    redirect('/gallery');
+}
+
 /** /session: a fresh form token for pages left open a long time (phones, kiosks). */
 function page_session(): void
 {

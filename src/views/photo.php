@@ -6,7 +6,8 @@
       $heading = match ($photo['kind']) {
           'boomerang' => ($who !== '' ? "{$who} · " : '') . 'Boomerang',
           'strip' => ($who !== '' ? "{$who}'s photo strip" : 'Photo strip') . ($photo['style'] !== 'No AI' ? " · {$photo['style']}" : ''),
-          default => ($who !== '' ? "{$who} as " : '') . $photo['style'],
+          'upload' => $who !== '' ? $who : 'Shared photo',
+          default => $photo['style'] === '' ? ($who !== '' ? $who : 'Photobooth photo') : ($who !== '' ? "{$who} as " : '') . $photo['style'],
       };
     ?>
     <h1 class="page-title" style="font-size:28px"><?= e($heading) ?></h1>

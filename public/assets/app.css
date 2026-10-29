@@ -350,3 +350,8 @@ html.has-bg .hero h1, html.has-bg .page-title { text-shadow: 0 2px 18px rgb(0 0 
 .vote-pop ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .vote-pop li { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; font-size: 14px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
 .vote-pop li.voided a { text-decoration: line-through; }
+
+/* Gallery: add your own photos */
+.add-photos summary { cursor: pointer; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; list-style: none; }
+.add-photos summary::-webkit-details-marker { display: none; }
+.add-photos[open] summary b::before { content: ""; }

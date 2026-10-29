@@ -469,3 +469,38 @@ function booth_photo_delete(array $photo): void
     }
     db_run('DELETE FROM booth_photos WHERE id = ?', [$photo['id']]);
 }
+
+const GALLERY_UPLOADS_PER_SESSION = 40;
+const GALLERY_UPLOADS_PER_POST = 10;
+
+/** A photo someone added to the gallery from their phone (no AI). Returns [row, null] or [null, error]. */
+function gallery_upload(array $contest, array $file, string $name): array
+{
+    [$relative, $err] = save_entry_photo($contest, $file);
+    if ($err) {
+        return [null, $err];
+    }
+    db_run(
+        "INSERT INTO booth_photos (code, contest_id, kind, name, original_path, result_path, status, style, in_gallery, created_at, finished_at)
+         VALUES (?, ?, 'upload', ?, ?, ?, 'done', '', ?, ?, ?)",
+        [new_photo_code(), $contest['id'], $name, $relative, $relative, $contest['require_approval'] ? 0 : 1, utc_now(), utc_now()]
+    );
+    return [booth_photo_find((int) db()->lastInsertId()), null];
+}
+
+/** The files from a multiple file input (name="photos[]"), one array per file, empty slots skipped. */
+function uploaded_files(string $field): array
+{
+    $f = $_FILES[$field] ?? null;
+    if (!$f || !is_array($f['name'] ?? null)) {
+        return $f && ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE ? [$f] : [];
+    }
+    $out = [];
+    foreach (array_keys($f['name']) as $i) {
+        if (($f['error'][$i] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        $out[] = ['name' => $f['name'][$i], 'type' => $f['type'][$i], 'tmp_name' => $f['tmp_name'][$i], 'error' => $f['error'][$i], 'size' => $f['size'][$i]];
+    }
+    return $out;
+}

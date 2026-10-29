@@ -198,6 +198,28 @@
     toastEl.textContent = msg; toastEl.hidden = false;
     clearTimeout(toastTimer); toastTimer = setTimeout(() => { toastEl.hidden = true; }, 2800);
   };
+  /** Last category voted: say so clearly, then go back to the main page. */
+  const allDone = total => {
+    const home = location.href.replace(/[?#].*$/, '').replace(/\/vote(\/.*)?$/, '') + '/';
+    const box = document.createElement('div');
+    box.className = 'done-pop';
+    box.setAttribute('role', 'dialog');
+    box.setAttribute('aria-modal', 'true');
+    box.innerHTML = `<div class="done-card"><div class="done-mark" aria-hidden="true">✓</div>
+      <h2>All done!</h2>
+      <p>Your votes are in for all ${total} categories. Thanks for voting!</p>
+      <p class="muted small">You can change a pick any time until voting closes.</p>
+      <a class="btn primary" href="${home}">Back to the main page</a>
+      <p class="muted small" data-left>Going back in 5…</p></div>`;
+    document.body.appendChild(box);
+    box.querySelector('a').focus();
+    let left = 5;
+    const t = setInterval(() => {
+      left--;
+      if (left <= 0) { clearInterval(t); location.href = home; return; }
+      box.querySelector('[data-left]').textContent = `Going back in ${left}…`;
+    }, 1000);
+  };
   if (grid) {
     const catId = grid.dataset.category;
     const catName = (grid.dataset.categoryName || '').toLowerCase();
@@ -229,8 +251,10 @@
         });
         document.querySelector(`[data-cat-tab="${catId}"] .done`)?.removeAttribute('hidden');
         const count = document.getElementById('pickCount');
+        const before = parseInt(count?.textContent || '0', 10);
         if (count) count.textContent = `${json.done} of ${json.total}`;
-        toast(json.done < json.total ? `${json.message} Pick the next category above.` : `${json.message} You've voted in every category!`);
+        if (json.done >= json.total && before < json.total) allDone(json.total);
+        else toast(json.done < json.total ? `${json.message} Pick the next category above.` : `${json.message} You've voted in every category!`);
       } catch (_) {
         toast('No connection. Check your signal and try again.');
       } finally {

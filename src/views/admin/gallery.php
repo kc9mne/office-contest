@@ -2,6 +2,12 @@
   <h1 class="page-title">Gallery</h1>
   <a class="btn ghost" href="<?= e(url('/gallery')) ?>" target="_blank" rel="noopener">View public gallery ↗</a>
 </div>
+<?php if ($contest): ?>
+  <div class="row" style="gap:10px; align-items:center">
+    <a class="btn primary" href="<?= e(admin_url('contests/' . $contest['id'] . '/export/media.zip')) ?>">Download all photos &amp; videos</a>
+    <span class="hint">One ZIP with entry photos, shared photobooth pictures, uploads and videos, sorted into folders. Handy for newsletters.</span>
+  </div>
+<?php endif; ?>
 
 <?php if (!$contest): ?>
   <section class="card empty"><p>Make a contest live to see its photos here.</p></section>

@@ -193,6 +193,7 @@ $styleRows = array_pad(array_values($form['styles'] ?? []), BOOTH_MAX_STYLES, ['
       <a class="btn ghost small" href="<?= e(admin_url('contests/' . $contest['id'] . '/export/results.csv')) ?>">Download results</a>
       <a class="btn ghost small" href="<?= e(admin_url('contests/' . $contest['id'] . '/export/voters.csv')) ?>">Download voter list</a>
       <a class="btn ghost small" href="<?= e(admin_url('contests/' . $contest['id'] . '/export/votes.csv')) ?>">Download every vote</a>
+      <a class="btn ghost small" href="<?= e(admin_url('contests/' . $contest['id'] . '/export/media.zip')) ?>">Download all photos &amp; videos (ZIP)</a>
     </div>
   </fieldset>
 </section>

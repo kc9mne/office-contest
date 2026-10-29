@@ -27,6 +27,8 @@ function admin_route(string $sub): void
         $contest = active_contest();
         $siteUrl = site_origin() . url('/');
         require APP_ROOT . '/src/views/admin/poster.php';
+    } elseif (preg_match('#^/contests/(\d+)/export/media\.zip$#', $sub, $m)) {
+        admin_export_media((int) $m[1]);
     } elseif (preg_match('#^/contests/(\d+)/export/(results|voters|votes)\.csv$#', $sub, $m)) {
         admin_export((int) $m[1], $m[2]);
     } elseif (preg_match('#^/contests/(\d+)/(close|reset-votes)$#', $sub, $m) && is_post()) {
@@ -179,6 +181,106 @@ function admin_voters(): void
         'voters' => $voters,
         'onlyFlagged' => isset($_GET['flagged']),
     ], 'layout_admin');
+}
+
+/**
+ * Every shared photo and video from a contest in one ZIP, sorted into folders with readable
+ * names and an index.csv, e.g. for newsletters. Only what's public: approved entries, booth
+ * photos people added to the gallery, gallery uploads and visible videos.
+ */
+function admin_export_media(int $id): never
+{
+    $contest = contest_find($id) ?? abort(404);
+    if (!class_exists('ZipArchive')) {
+        abort(500, 'The server needs the PHP zip extension (sudo apt install php-zip).');
+    }
+    @set_time_limit(0);
+    session_write_close();
+
+    $tmp = tempnam(sys_get_temp_dir(), 'media');
+    $zip = new ZipArchive();
+    if ($tmp === false || $zip->open($tmp, ZipArchive::OVERWRITE) !== true) {
+        abort(500, 'The server could not build the ZIP file.');
+    }
+    $used = [];
+    $index = [];
+    $add = function (string $folder, ?string $relative, string $label, array $info) use ($zip, &$used, &$index): void {
+        if (!$relative || str_contains($relative, '..') || !is_file(media_dir() . '/' . $relative)) {
+            return;
+        }
+        $ext = strtolower(pathinfo($relative, PATHINFO_EXTENSION)) ?: 'jpg';
+        $base = trim((string) preg_replace('/\s+/u', ' ', (string) preg_replace('/[^\pL\pN &\'(),.-]+/u', ' ', $label)), ' .') ?: 'photo';
+        $base = mb_substr($base, 0, 80);
+        $name = "{$folder}/{$base}.{$ext}";
+        for ($i = 2; isset($used[mb_strtolower($name)]); $i++) {
+            $name = "{$folder}/{$base} ({$i}).{$ext}";
+        }
+        $used[mb_strtolower($name)] = true;
+        $zip->addFile(media_dir() . '/' . $relative, $name);
+        $zip->setCompressionName($name, ZipArchive::CM_STORE); // photos and videos are already compressed
+        $index[] = [$name, ...$info];
+    };
+    $when = fn(?string $utc) => $utc ? utc_to_local($utc, 'Y-m-d g:i A') : '';
+
+    foreach (contest_entries($id) as $e) {
+        $add('Entries', $e['photo_path'] ?? null, $e['name'] . ($e['title'] !== '' ? ' - ' . $e['title'] : ''),
+            [$e['name'], $e['title'], $e['department'], $when($e['created_at'])]);
+    }
+    foreach (booth_gallery_photos($id, 5000) as $p) {
+        $upload = $p['kind'] === 'upload';
+        $what = $upload ? 'Shared photo' : match ($p['kind']) {
+            'strip' => 'Photo strip',
+            'boomerang' => 'Boomerang',
+            default => $p['style'] !== '' ? $p['style'] : 'Photobooth photo',
+        };
+        $add($upload ? 'Shared photos' : 'Photobooth', $p['result_path'], ($p['name'] !== '' ? $p['name'] . ' - ' : '') . $what . ' ' . $p['code'],
+            [$p['name'], $what, '', $when($p['created_at'])]);
+    }
+    $links = [];
+    foreach (contest_videos($id) as $v) {
+        if (!empty($v['youtube_id'])) {
+            $links[] = ($v['title'] !== '' ? $v['title'] : 'Video') . ': https://www.youtube.com/watch?v=' . $v['youtube_id'];
+            continue;
+        }
+        $add('Videos', $v['video_path'], $v['title'] !== '' ? $v['title'] : 'Video', [$v['posted_by'], $v['title'], '', $when($v['created_at'])]);
+    }
+    if ($links) {
+        $zip->addFromString('Videos/YouTube links.txt', implode("\r\n", $links) . "\r\n");
+    }
+
+    $csv = fopen('php://temp', 'w+');
+    $safe = fn($cell) => is_string($cell) && $cell !== '' && in_array($cell[0], ['=', '+', '-', '@', "\t", "\r"], true) ? "'" . $cell : $cell;
+    fputcsv($csv, ['File', 'Who', 'What', 'Department', 'Taken'], ',', '"', '');
+    foreach ($index as $row) {
+        fputcsv($csv, array_map($safe, $row), ',', '"', '');
+    }
+    rewind($csv);
+    $zip->addFromString('index.csv', "\xEF\xBB\xBF" . stream_get_contents($csv));
+    $zip->addFromString('About these files.txt', implode("\r\n", [
+        $contest['title'] . ' - photos and videos',
+        'Downloaded ' . utc_to_local(utc_now(), 'D M j, Y g:i A'),
+        '',
+        'Entries: contest entry photos.',
+        'Photobooth: pictures people chose to add to the gallery.',
+        'Shared photos: pictures people uploaded to the gallery.',
+        'Videos: uploaded videos (YouTube ones are listed as links).',
+        '',
+        'index.csv lists every file with who is in it and when it was taken.',
+        'Photos people kept private, and anything hidden in Admin, are not included.',
+    ]) . "\r\n");
+    $zip->close();
+
+    $slug = trim((string) preg_replace('/[^a-z0-9]+/', '-', strtolower($contest['title'])), '-') ?: 'contest';
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+    header('Content-Type: application/zip');
+    header('Content-Disposition: attachment; filename="' . $slug . '-media.zip"');
+    header('Content-Length: ' . filesize($tmp));
+    header('Cache-Control: no-store');
+    readfile($tmp);
+    @unlink($tmp);
+    exit;
 }
 
 function admin_export(int $id, string $what): void

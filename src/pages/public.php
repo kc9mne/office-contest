@@ -51,8 +51,8 @@ function page_join(): void
 
     if (is_post() && $phase !== 'closed') {
         [$form, $errors] = entry_form_from_post();
-        if (device_entry_count((int) $contest['id']) >= ENTRIES_PER_DEVICE) {
-            $errors['photo'] = 'This phone has already sent ' . ENTRIES_PER_DEVICE . ' entries. Ask an organizer if you need another.';
+        if (!is_admin() && device_entry_count((int) $contest['id']) >= ENTRIES_PER_DEVICE) {
+            $errors['photo'] = 'This phone has already sent ' . ENTRIES_PER_DEVICE . ' entries. Ask an organizer to add more from Admin.';
         }
         $photo = null;
         if (!$errors) {

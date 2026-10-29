@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 const ENTRY_MAX_UPLOAD = 15 * 1024 * 1024;
 const ENTRY_MAX_EDGE = 1600;
-const ENTRIES_PER_DEVICE = 3;
+const ENTRIES_PER_DEVICE = 25; // a spam guard; organizers signed in to Admin on the phone have no limit
 
 /**
  * This browser's device ID: a random value in a long-lived cookie.

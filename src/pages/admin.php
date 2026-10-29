@@ -397,7 +397,7 @@ function admin_settings(): void
             $model = post_str('openai_model', 60);
             $quality = post_str('openai_quality', 10);
             if (!preg_match('/^[a-z0-9][a-z0-9.\-]*$/i', $model)) {
-                $errors['openai_model'] = 'Enter a model name, like gpt-image-1.';
+                $errors['openai_model'] = 'Enter a model name, like gpt-image-2.5-sunburst.';
             }
             if (!in_array($quality, ['low', 'medium', 'high'], true)) {
                 $errors['openai_quality'] = 'Pick a quality.';

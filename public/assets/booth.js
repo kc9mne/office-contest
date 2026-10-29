@@ -71,7 +71,8 @@
   const isGroup = () => st.kind === 'group';
   const isWide = () => st.kind === 'group' || st.kind === 'strip';
   const canBoomerang = cfg.boomerang && typeof window.MediaRecorder === 'function';
-  const LOOK_NONE = -1; // photo strips: real photos, no AI
+  const LOOK_NONE = -1; // real photo, no AI (photo strips always; single/group via "No changes")
+  const asIs = () => st.style === LOOK_NONE && st.kind !== 'strip';
   /** Looks for this kind of photo: everyone's, plus just-me-only or group-only ones. Keeps each look's index. */
   const looksForKind = () => cfg.styles.map((x, i) => ({ ...x, i })).filter(x => !x.for || x.for === 'all' || x.for === (isGroup() ? 'group' : 'single'));
 
@@ -265,7 +266,7 @@
       }
       let res;
       try {
-        res = await post(`/photos/${st.photo.id}/process`, { style }, { timeoutMs: 240_000 });
+        res = await post(`/photos/${st.photo.id}/process`, asIs() ? { style, as_is: '1' } : { style }, { timeoutMs: 240_000 });
       } catch (_) {
         res = null; // connection dropped or timed out: the server keeps working, so check in
       }
@@ -398,6 +399,13 @@
         ${cfg.entries ? `<button type="button" class="kbtn ghost wide" data-act="enter">Enter the ${esc(cfg.noun)} contest</button>` : ''}
       </div>
       ${fine}`,
+    frame: () => `
+      <h2>Get everyone in the frame</h2>
+      <p>Squeeze in until every face is on the screen. Take your time. Tap when you're all ready and you'll get a 5-second countdown.</p>
+      <div class="kacts col">
+        <button type="button" class="kbtn primary huge" data-act="ready" data-autofocus>We're ready!</button>
+        <button type="button" class="kbtn link" data-act="reset">← Go back to the start</button>
+      </div>`,
     recording: () => `<h2>Go go go!</h2><p>Wave, spin, jump: it plays forward and backward on a loop.</p>`,
     countdown: () => st.kind === 'strip' ? `<h2>Shot ${st.shot} of 4</h2><p>${['Big smile!', 'Now something silly!', 'Spooky face!', 'Last one: anything goes!'][st.shot - 1] || ''}</p>`
       : st.kind === 'boomerang' ? `<h2>Get ready to move!</h2><p>When it says go, do something fun for two seconds.</p>`
@@ -408,14 +416,15 @@
       <button type="button" class="kbtn link" data-act="reset">← Go back to the start</button>`,
     style: () => `
       <h2>Pick your look</h2>
-      <div class="kstyles${looksForKind().length > 4 ? ' many' : ''}">${looksForKind().map(x => `<button type="button" class="kstyle" data-style="${x.i}" aria-pressed="${st.style === x.i}"><span class="sw" style="background:linear-gradient(160deg,${esc(x.from)},${esc(x.to)})"></span>${esc(x.name)}</button>`).join('')}</div>
+      <div class="kstyles${looksForKind().length > 3 ? ' many' : ''}"><button type="button" class="kstyle" data-style="${LOOK_NONE}" aria-pressed="${st.style === LOOK_NONE}"><span class="sw" style="background:linear-gradient(160deg,#c9ccd3,#6b7280)"></span>No changes</button>${looksForKind().map(x => `<button type="button" class="kstyle" data-style="${x.i}" aria-pressed="${st.style === x.i}"><span class="sw" style="background:linear-gradient(160deg,${esc(x.from)},${esc(x.to)})"></span>${esc(x.name)}</button>`).join('')}</div>
       <div class="field"><label for="kName">${isGroup() ? 'Names' : 'Your name'} <span class="hint">(optional, shown in the gallery)</span></label><input id="kName" maxlength="80" value="${esc(st.name)}" autocomplete="off"></div>
-      <button type="button" class="kbtn primary" data-act="make" ${st.style == null ? 'disabled' : ''}>${esc(cfg.verb)}</button>
+      <button type="button" class="kbtn primary" data-act="make" ${st.style == null ? 'disabled' : ''}>${asIs() ? 'Use this photo' : esc(cfg.verb)}</button>
       <button type="button" class="kbtn link" data-act="retake">Retake photo</button>`,
     working: () => `
       <h2>Working on it…</h2>
       <p>${st.kind === 'boomerang' ? 'Making your boomerang. Just a few seconds.'
         : st.kind === 'strip' ? 'Putting your strip together. Just a second.'
+        : asIs() ? 'Saving your photo. Just a second.'
         : `Turning ${isGroup() ? 'your group' : 'you'} into: <b>${esc(cfg.styles[st.style]?.name)}</b>. This usually takes 15–60 seconds.`}</p>
       <div class="spin" role="status" aria-label="Working"></div>`,
     failed: () => `
@@ -426,7 +435,7 @@
         <button type="button" class="kbtn ghost" data-act="reset">Start over</button>
       </div>`,
     result: () => `
-      <h2>Ta-da!</h2><p>${st.kind === 'boomerang' ? "Here's your boomerang!" : st.kind === 'strip' ? "Here's your photo strip!" : `Here's ${isGroup() ? 'your group' : 'you'} as <b>${esc(st.photo.style)}</b>.`}</p>
+      <h2>Ta-da!</h2><p>${st.kind === 'boomerang' ? "Here's your boomerang!" : st.kind === 'strip' ? "Here's your photo strip!" : asIs() ? "Here's your photo!" : `Here's ${isGroup() ? 'your group' : 'you'} as <b>${esc(st.photo.style)}</b>.`}</p>
       <div class="kacts col">
         <button type="button" class="kbtn primary" data-act="gallery" data-autofocus>Add to gallery</button>
         ${st.kind === 'boomerang' || st.kind === 'strip' ? '<button type="button" class="kbtn ghost" data-act="retake">Do another one</button>' : '<button type="button" class="kbtn ghost" data-act="restyle">Try another look</button>'}
@@ -467,16 +476,20 @@
     if (styleBtn) {
       st.style = +styleBtn.dataset.style;
       side.querySelectorAll('[data-style]').forEach(b => b.setAttribute('aria-pressed', b === styleBtn));
-      side.querySelector('[data-act="make"]').disabled = false;
+      const make = side.querySelector('[data-act="make"]');
+      make.disabled = false;
+      make.textContent = asIs() ? 'Use this photo' : cfg.verb;
       return;
     }
     const act = e.target.closest('[data-act]')?.dataset.act;
     if (!act) return;
-    if (['single', 'group', 'strip', 'boomerang'].includes(act)) { st.kind = act; st.flow = 'booth'; st.style = null; render(); countdown(); }
+    if (act === 'group') { st.kind = 'group'; st.flow = 'booth'; st.style = null; go('frame'); }
+    else if (act === 'ready') countdown();
+    else if (['single', 'strip', 'boomerang'].includes(act)) { st.kind = act; st.flow = 'booth'; st.style = null; render(); countdown(); }
     else if (act === 'enter') { st.kind = 'single'; st.flow = 'entry'; render(); countdown(); }
     else if (act === 'keep' && st.flow === 'entry') go('entryForm', { error: '' });
     else if (act === 'submitEntry') submitEntry();
-    else if (act === 'retake') countdown();
+    else if (act === 'retake') isGroup() && st.flow === 'booth' ? go('frame') : countdown();
     else if (act === 'keep' && st.kind === 'boomerang') makeBoomerang();
     else if (act === 'keep' && st.kind === 'strip') { st.style = LOOK_NONE; makeIt(); }
     else if (act === 'keep' || act === 'restyle') go('style');

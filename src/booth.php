@@ -75,7 +75,7 @@ function openai_api_key(): ?string
 
 function openai_model(): string
 {
-    return setting('openai_model') ?: env('OPENAI_IMAGE_MODEL', 'gpt-image-1');
+    return setting('openai_model') ?: env('OPENAI_IMAGE_MODEL', 'gpt-image-2.5-sunburst');
 }
 
 function openai_quality(): string
@@ -242,6 +242,25 @@ function image_fit(GdImage $img, int $maxEdge): GdImage
     return $out;
 }
 
+/** "No changes": the real photo becomes the result, no AI. Returns the updated row. */
+function booth_keep_as_is(array $photo): array
+{
+    $relative = dirname($photo['original_path']) . '/' . $photo['code'] . '-' . bin2hex(random_bytes(3)) . '.jpg';
+    if (copy(media_dir() . '/' . $photo['original_path'], media_dir() . '/' . $relative)) {
+        delete_media($photo['result_path']);
+        db_run(
+            "UPDATE booth_photos SET status = 'done', style = '', error = '', result_path = ?, finished_at = ? WHERE id = ?",
+            [$relative, utc_now(), $photo['id']]
+        );
+    } else {
+        db_run(
+            "UPDATE booth_photos SET status = 'failed', error = ?, finished_at = ? WHERE id = ?",
+            ['The server could not save the photo.', utc_now(), $photo['id']]
+        );
+    }
+    return booth_photo_find((int) $photo['id']);
+}
+
 /**
  * Restyle a booth photo with the chosen look. Runs the AI call (or the demo
  * filter when no API key is set) and stores the result. Returns the updated row.
@@ -313,6 +332,9 @@ function openai_restyle(string $sourcePath, string $prompt, string $size): strin
         }
         if ($status === 401) {
             throw new RuntimeException("The photobooth's AI key isn't working. Ask an organizer to check it in Admin.");
+        }
+        if (stripos((string) $message, 'does not exist') !== false || $code === 'model_not_found') {
+            throw new RuntimeException("The photobooth's AI model (" . openai_model() . ") has been retired by OpenAI. Ask an organizer to pick a newer one in Admin → Settings.");
         }
         if ($status === 429) {
             throw new RuntimeException('The AI service is busy right now. Wait a few seconds and tap Try again.');

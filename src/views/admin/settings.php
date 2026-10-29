@@ -132,8 +132,8 @@ $currentTz = site_tz()->getName();
       <div class="<?= $cls('openai_model') ?>">
         <label for="openai_model">Image model</label>
         <input id="openai_model" name="openai_model" value="<?= e(openai_model()) ?>" list="modelList" maxlength="60" spellcheck="false">
-        <datalist id="modelList"><option value="gpt-image-1"><option value="gpt-image-1-mini"></datalist>
-        <span class="hint">gpt-image-1 keeps faces most recognizable.</span>
+        <datalist id="modelList"><option value="gpt-image-2.5-sunburst"><option value="gpt-image-2.5-flare"><option value="gpt-image-2"></datalist>
+        <span class="hint">gpt-image-2.5-sunburst is OpenAI's pick for photo edits and keeps faces most recognizable. OpenAI retires older models now and then; if the photobooth says the model is gone, change it here.</span>
         <?= $err('openai_model') ?>
       </div>
       <div class="<?= $cls('openai_quality') ?>">

@@ -16,7 +16,7 @@ $mode = $contest['mode'] ?? 'general';
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bowlby+One+SC&family=Figtree:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="<?= e(url('/assets/app.css')) ?>?v=13">
 <link rel="stylesheet" href="<?= e(url('/assets/booth.css')) ?>?v=13">
-<script src="<?= e(url('/assets/booth.js')) ?>?v=13" defer></script>
+<script src="<?= e(url('/assets/booth.js')) ?>?v=15" defer></script>
 </head>
 <body class="booth-body">
 <div class="kiosk" id="kiosk" data-state="<?= e($state) ?>" data-config="<?= e(json_encode($config)) ?>">

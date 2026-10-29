@@ -103,8 +103,9 @@ function booth_upload(array $contest): void
 function booth_run(array $contest, array $photo): void
 {
     $isStrip = $photo['kind'] === 'strip';
-    $style = $isStrip ? null : booth_style_by_name($contest, (string) ($_POST['style'] ?? '')); // strips are always real photos
-    if (!$style && !$isStrip) {
+    $asIs = !$isStrip && post_bool('as_is'); // "No changes": keep the real photo
+    $style = $isStrip || $asIs ? null : booth_style_by_name($contest, (string) ($_POST['style'] ?? '')); // strips are always real photos
+    if (!$style && !$isStrip && !$asIs) {
         json_response(['error' => 'Pick a look first.'], 422);
     }
     if ($photo['status'] === 'processing') {
@@ -114,7 +115,7 @@ function booth_run(array $contest, array $photo): void
         json_response(['error' => "The photobooth has reached today's AI photo limit. It resets at midnight. Photo strips and boomerangs still work."], 429);
     }
     session_write_close(); // don't block other requests from this kiosk while the AI works
-    $photo = $isStrip ? booth_process_strip($photo, $contest, $style) : booth_process($photo, $contest, $style);
+    $photo = $isStrip ? booth_process_strip($photo, $contest, $style) : ($asIs ? booth_keep_as_is($photo) : booth_process($photo, $contest, $style));
     json_response(booth_photo_json($photo), $photo['status'] === 'done' ? 200 : 502);
 }
 
